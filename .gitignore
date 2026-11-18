@@ -1,0 +1,4 @@
+# IMDF-data nooit mee publiceren (GitHub Pages is openbaar)
+data/
+*.zip
+*.geojson
