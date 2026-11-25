@@ -76,8 +76,70 @@
   #results div { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
   #results div:hover { background: var(--hover); }
   #results small { color: var(--muted); margin-left: auto; white-space: nowrap; }
-  #mapwrap { flex: 1; position: relative; min-width: 0; }
+  #mapwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  #mapbox { flex: 1; position: relative; min-height: 120px; }
   #map { position: absolute; inset: 0; }
+  /* ---- Laag-rij: tabelknop bij hover ---- */
+  label.chk[data-feat] { position: relative; }
+  .tblbtn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0 2px; margin-left: 6px; opacity: 0; display: grid; place-items: center; }
+  .tblbtn svg { width: 15px; height: 15px; fill: currentColor; }
+  label.chk:hover .tblbtn, .tblbtn:focus-visible { opacity: 1; }
+  .tblbtn:hover { color: var(--accent); }
+  /* ---- Contextmenu ---- */
+  #ctx { position: fixed; z-index: 50; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; min-width: 190px; }
+  #ctx button { display: flex; width: 100%; gap: 8px; align-items: center; border: 0; background: transparent; color: var(--text); font: inherit; padding: 7px 10px; border-radius: 7px; cursor: pointer; text-align: left; }
+  #ctx button:hover { background: var(--hover); }
+  #ctx svg { width: 15px; height: 15px; fill: var(--muted); }
+  #ctx hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }
+  /* ---- Attributentabel ---- */
+  #tbl { flex: none; height: var(--tbl-h, 300px); min-height: 120px; max-height: 80vh; display: flex; flex-direction: column; background: var(--panel); border-top: 1px solid var(--line); position: relative; z-index: 4; }
+  #tbl-grip { position: absolute; left: 0; right: 0; top: -4px; height: 8px; cursor: ns-resize; z-index: 2; }
+  #tbl-grip::after { content: ""; position: absolute; left: 50%; top: 2px; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--line); }
+  #tbl-grip:hover::after { background: var(--accent); }
+  .tbl-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tbl-bar strong { font-size: 14px; }
+  .tbl-bar .muted, .muted { color: var(--muted); font-size: 12px; }
+  .tbl-bar .spacer { flex: 1; }
+  #tbl-q { width: 220px; font: inherit; padding: 5px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+  #tbl-q:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .tbl-opt { padding: 0; font-size: 13px; }
+  .btn.sm { padding: 4px 10px; font-size: 13px; }
+  .btn.icon { padding: 4px 8px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  #tbl-scroll { flex: 1; overflow: auto; position: relative; }
+  #tbl-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12.5px; }
+  #tbl-table th { position: sticky; top: 0; z-index: 1; background: var(--panel-2); text-align: left; font-weight: 600; padding: 0 10px; height: 30px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; user-select: none; }
+  #tbl-table th:hover { color: var(--accent); }
+  #tbl-table th .arr { color: var(--accent); margin-left: 4px; }
+  #tbl-table th.zoomcol, #tbl-table td.zoomcol { position: sticky; left: 0; z-index: 2; width: 34px; padding: 0; text-align: center; cursor: default; }
+  #tbl-table td.zoomcol { background: var(--panel); z-index: 1; }
+  #tbl-table td { height: 28px; padding: 0 10px; border-bottom: 1px solid var(--line); border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #tbl-table tbody tr { cursor: pointer; }
+  #tbl-table tbody tr:hover td { background: var(--hover); }
+  #tbl-table tbody tr.sel td { background: var(--accent-soft); }
+  #tbl-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .zbtn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 6px; display: inline-grid; place-items: center; }
+  .zbtn:hover { color: var(--accent); background: var(--accent-soft); }
+  .zbtn svg { width: 14px; height: 14px; fill: currentColor; }
+  .nil { color: var(--muted); opacity: .6; }
+  .chip { display: inline-block; max-width: 100%; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; line-height: 18px; margin-right: 3px; font-size: 11.5px; }
+  .chip.ref { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); cursor: pointer; }
+  .chip.ref:hover { text-decoration: underline; }
+  .chip.obj { cursor: pointer; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chip.obj:hover { border-color: var(--accent); }
+  .chip.more { background: transparent; }
+  .chip.bool-t { color: #0ca678; } .chip.bool-f { color: #e03131; }
+  .lbadge { font-size: 10px; color: var(--muted); margin-left: 4px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  #tbl-table a { color: var(--accent); }
+  /* ---- JSON-popover ---- */
+  #jsonpop { position: fixed; z-index: 60; max-width: 460px; max-height: 360px; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 12px; }
+  #jsonpop .jp-head { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  #jsonpop pre { margin: 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+  .j-k { color: var(--accent); } .j-s { color: #0c8599; } .j-n { color: #e8590c; } .j-b { color: #ae3ec9; } .j-z { color: var(--muted); }
+  :root[data-theme="dark"] .j-s { color: #66d9e8; } :root[data-theme="dark"] .j-n { color: #ffa94d; } :root[data-theme="dark"] .j-b { color: #e599f7; }
+  #info-body .counts button { border: 0; background: none; color: var(--accent); font: inherit; padding: 0; cursor: pointer; text-align: left; }
+  #info-body .counts button:hover { text-decoration: underline; }
   #levels { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--panel); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; z-index: 3; }
   #levels button { font: 600 13px system-ui, sans-serif; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); min-width: 52px; padding: 10px 8px; cursor: pointer; }
   #levels button:last-child { border-bottom: 0; }
@@ -123,6 +185,7 @@
     body { flex-direction: column-reverse; }
     #side { width: 100%; height: 42%; border-right: 0; border-top: 1px solid var(--line); }
     #side header { padding: 10px 16px; }
+    #tbl { height: 45%; }
   }
 </style>
 </head>
@@ -158,8 +221,8 @@
     <div id="results"></div>
 
     <h2>Lagen</h2>
-    <label class="chk"><input type="checkbox" data-layer="occupant" checked><span id="occupant-legend-icon"></span>Occupants<span class="cnt" id="cnt-occupant"></span></label>
-    <label class="chk"><input type="checkbox" data-layer="amenity" checked><span id="amenity-legend-icon"></span>Amenities<span class="cnt" id="cnt-amenity"></span></label>
+    <label class="chk" data-feat="occupant"><input type="checkbox" data-layer="occupant" checked><span id="occupant-legend-icon"></span>Occupants<span class="cnt" id="cnt-occupant"></span></label>
+    <label class="chk" data-feat="amenity"><input type="checkbox" data-layer="amenity" checked><span id="amenity-legend-icon"></span>Amenities<span class="cnt" id="cnt-amenity"></span></label>
     <label class="chk"><input type="checkbox" data-layer="labels" checked>Namen tonen</label>
     <label class="chk" data-feat="venue"><input type="checkbox" data-layer="venue" checked>Venue<span class="cnt" data-cnt="venue"></span></label>
     <label class="chk" data-feat="footprint"><input type="checkbox" data-layer="footprint" checked>Footprints<span class="cnt" data-cnt="footprint"></span></label>
@@ -179,6 +242,7 @@
 </aside>
 
 <div id="mapwrap">
+ <div id="mapbox">
   <div id="map"></div>
   <div id="levelname" class="hidden"></div>
   <div id="levels" class="hidden"></div>
@@ -190,7 +254,25 @@
       <div id="status"></div>
     </div>
   </div>
+ </div>
+ <!-- Attributentabel -->
+ <section id="tbl" class="hidden" aria-label="Attributentabel">
+  <div id="tbl-grip" title="Sleep om de hoogte te wijzigen"></div>
+  <div class="tbl-bar">
+    <strong id="tbl-title"></strong>
+    <span id="tbl-count" class="muted"></span>
+    <input type="search" id="tbl-q" placeholder="Zoek in tabel…" autocomplete="off">
+    <label class="chk tbl-opt"><input type="checkbox" id="tbl-level">Alleen deze verdieping</label>
+    <span class="spacer"></span>
+    <button class="btn sm" id="tbl-zoom" title="Zoom naar de geselecteerde regel" disabled>Zoom naar selectie</button>
+    <button class="btn sm" id="tbl-csv" title="Gefilterde regels als CSV downloaden">CSV</button>
+    <button class="btn sm icon" id="tbl-close" title="Tabel sluiten" aria-label="Tabel sluiten">✕</button>
+  </div>
+  <div id="tbl-scroll"><table id="tbl-table"><colgroup></colgroup><thead></thead><tbody></tbody></table></div>
+ </section>
 </div>
+<div id="ctx" class="hidden" role="menu"></div>
+<div id="jsonpop" class="hidden"></div>
 <input type="file" id="file" accept=".zip,.geojson,.json" multiple class="hidden">
 
 <script>
@@ -200,7 +282,7 @@
 // (verticaal transport = blauw, sanitair = lavendel, verblijf = zand, groen = salie).
 const PALETTE = {
   light: {
-    bg: "#e9edf2", venueFill: "#ffffff", venueLine: "#4c5fd5", levelFill: "#fbfcfd", levelLine: "#8a95a5",
+    bg: "#e9edf2", venueFill: "#ffffff", venueLine: "#4c5fd5", levelFill: "#fbfcfd", levelLine: "#8a95a5", hl: "#4c5fd5",
     line: "#c3cbd6", detail: "#a3adbb", opening: "#fbfcfd", text: "#1d2330", halo: "#ffffff",
     unitOpacity: 1, sectionGlow: 0.32, fixtureOpacity: 1, kiosk: "#c9d1dc",
     raster: { opacity: 0.6, sat: 0, min: 0, max: 1 },
@@ -215,7 +297,7 @@ const PALETTE = {
     fixture: { furniture: "#d5dbe4", "checkin.desk": "#b9c6ec", desk: "#d0d6df", baggagecarousel: "#aebbd8", _: "#cdd4de" }
   },
   dark: {
-    bg: "#0b0f15", venueFill: "#111720", venueLine: "#8d9bff", levelFill: "#121821", levelLine: "#556277",
+    bg: "#0b0f15", venueFill: "#111720", venueLine: "#8d9bff", levelFill: "#121821", levelLine: "#556277", hl: "#8d9bff",
     line: "#3a4659", detail: "#465367", opening: "#232c39", text: "#e7ebf2", halo: "#0b0f15",
     unitOpacity: 1, sectionGlow: 0.4, fixtureOpacity: 1, kiosk: "#36404f",
     raster: { opacity: 0.5, sat: -1, min: 0.8, max: 0.06 },   // min>max keert de grijze BRT-tegels om → donkere ondergrond
@@ -527,7 +609,8 @@ function applyTheme() {
     b.classList.toggle("on", b.dataset.pref === themePref);
     b.setAttribute("aria-pressed", b.dataset.pref === themePref);
   });
-  if (typeof map !== "undefined" && map.isStyleLoaded()) applyMapTheme();
+  // Niet op isStyleLoaded() wachten: die is false zolang er tegels laden, en dan zou de wissel gemist worden
+  if (typeof map !== "undefined" && map.getLayer("bg")) applyMapTheme();
 }
 document.querySelectorAll("#theme button").forEach(b => b.onclick = () => {
   themePref = b.dataset.pref;
@@ -544,6 +627,7 @@ function applyMapTheme() {
   set("basemap", "raster-brightness-min", P.raster.min); set("basemap", "raster-brightness-max", P.raster.max);
   set("venue-fill", "fill-color", P.venueFill); set("venue-line", "line-color", P.venueLine);
   set("footprint-line", "line-color", P.levelLine);
+  for (const id of ["hl-fill", "hl-line", "hl-pt"]) set(id, id === "hl-pt" ? "circle-stroke-color" : id === "hl-fill" ? "fill-color" : "line-color", P.hl);
   set("level-fill", "fill-color", P.levelFill); set("level-line", "line-color", P.levelLine);
   set("unit-fill", "fill-color", matchColor(P.unit, P.unit.unspecified)); set("unit-fill", "fill-opacity", P.unitOpacity);
   for (const id of ["unit-line", "unit-otb", "fixture-line"]) set(id, "line-color", P.line);
@@ -645,6 +729,9 @@ function build() {
   for (const f of feats("section")) f.properties._sg = sectionGroup(f.properties.category);
   for (const u of feats("unit")) S.unitById[u.id] = u;
   for (const a of feats("anchor")) S.anchorById[a.id] = a;
+  // Alle overige features ook opzoekbaar maken (voor verwijzingen in de attributentabel)
+  for (const t of ["venue", "address", "building", "footprint", "anchor", "relationship", "occupant", "amenity"])
+    for (const f of feats(t)) if (!S.featById[f.id]) S.featById[f.id] = f;
 
   // Amenities: point geometry, level via referenced units
   S.points.amenity = [];
@@ -707,9 +794,10 @@ function renderInfo() {
     ["Namen in", langs.size ? [...langs].sort().map(l => `<button class="tag lang-tag${l === S.lang ? " on" : ""}" data-lang="${esc(l)}" title="Namen in ${esc(l)} tonen">${esc(l)}</button>`).join("") : null]]);
   const types = ["building", "footprint", "level", "unit", "opening", "section", "fixture", "detail", "kiosk", "geofence", "anchor", "occupant", "amenity", "relationship"];
   html += '<div class="sub">Inhoud</div><div class="counts">' + types.filter(t => feats(t).length)
-    .map(t => `<span>${t}</span><span>${feats(t).length.toLocaleString("nl-NL")}</span>`).join("") + "</div>";
+    .map(t => `<span><button data-table="${t}" title="Toon tabelinhoud van ${t}">${t}</button></span><span>${feats(t).length.toLocaleString("nl-NL")}</span>`).join("") + "</div>";
   $("info-body").innerHTML = html;
   $("info-body").querySelectorAll(".lang-tag").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  $("info-body").querySelectorAll("[data-table]").forEach(b => b.onclick = () => openTable(b.dataset.table));
   $("info").classList.remove("hidden");
 }
 
@@ -736,6 +824,7 @@ function setLang(l) {
   renderLevelButtons();
   setLevel(ord, true);
   $("search").oninput();
+  if (T.type && !$("tbl").classList.contains("hidden")) { T.text = new Map(); renderRows(); }
 }
 
 // ---------- Render ----------
@@ -799,6 +888,7 @@ function rewind(features) {
 }
 
 function render() {
+  if (typeof T !== "undefined") { T.type = null; T.sel = null; $("tbl").classList.add("hidden"); }
   for (const l of LAYERS.splice(0)) if (map.getLayer(l.id)) map.removeLayer(l.id);
   for (const s of Object.keys(map.getStyle().sources)) if (s !== "basemap") map.removeSource(s);
 
@@ -859,6 +949,12 @@ function render() {
         "text-anchor": "top", "text-max-width": 9, "text-optional": true },
       paint: { "text-halo-width": 1.4 } }, t + "-lbl");
   });
+  // Oplichten van een geselecteerde tabelregel
+  map.addSource("hl", { type: "geojson", data: fc([]) });
+  addLayer({ id: "hl-fill", type: "fill", source: "hl", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-opacity": 0.18 } }, "hl");
+  addLayer({ id: "hl-line", type: "line", source: "hl", filter: ["!=", ["geometry-type"], "Point"], layout: { "line-join": "round" }, paint: { "line-width": 3 } }, "hl");
+  addLayer({ id: "hl-pt", type: "circle", source: "hl", filter: ["==", ["geometry-type"], "Point"], paint: {
+    "circle-radius": 16, "circle-color": "rgba(0,0,0,0)", "circle-stroke-width": 3 } }, "hl");
   applyMapTheme();
 
   renderLevelButtons();
@@ -923,6 +1019,7 @@ function setLevel(o, closePopups = true) {
   $("levelname").classList.remove("hidden");
   if (closePopups && popup) popup.remove();
   renderCategories();
+  if (typeof T !== "undefined" && T.type && $("tbl-level").checked && !$("tbl").classList.contains("hidden")) applyTableFilter(false);
   saveView();
 }
 
@@ -1029,6 +1126,282 @@ map.on("mousemove", e => {
   const hits = map.queryRenderedFeatures(e.point, { layers: [...layersOf("occupant", "pt"), ...layersOf("amenity", "pt")].filter(id => map.getLayer(id)) });
   map.getCanvas().style.cursor = hits.length ? "pointer" : "";
 });
+
+// ---------- Attributentabel ----------
+const TABLE_ICON = '<svg viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 4v4h6V8H5Zm8 0v4h6V8h-6Zm-8 6v4h6v-4H5Zm8 0v4h6v-4h-6Z"/></svg>';
+const ZOOM_ICON = '<svg viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 0 1 5.25 10.34l5.46 5.45-1.42 1.42-5.45-5.46A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>';
+const EYE_ICON = '<svg viewBox="0 0 24 24"><path d="M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7Zm0 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>';
+const T = { type: null, rows: [], view: [], cols: [], sort: null, dir: 1, sel: null, RH: 29 };
+
+// Tabelknopje in iedere laag-rij
+document.querySelectorAll("label.chk[data-feat]").forEach(l => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "tblbtn"; b.title = "Toon tabelinhoud"; b.innerHTML = TABLE_ICON;
+  b.onclick = e => { e.preventDefault(); e.stopPropagation(); openTable(l.dataset.feat); };
+  l.querySelector(".cnt")?.after(b) ?? l.append(b);
+});
+// Rechtermuisklik op een laag → contextmenu
+$("side").addEventListener("contextmenu", e => {
+  const l = e.target.closest("label.chk[data-feat]");
+  if (!l || !S.loaded) return;
+  e.preventDefault();
+  const t = l.dataset.feat, inp = l.querySelector("[data-layer]");
+  showCtx(e.clientX, e.clientY, [
+    [TABLE_ICON, "Toon tabelinhoud", () => openTable(t)],
+    null,
+    [EYE_ICON, "Alleen deze laag tonen", () => { document.querySelectorAll("[data-layer]").forEach(i => { if (i.dataset.layer !== "basemap") i.checked = i === inp; }); inp.onchange(); }],
+    [EYE_ICON, "Alle lagen tonen", () => { document.querySelectorAll("[data-layer]").forEach(i => i.checked = true); inp.onchange(); }],
+  ]);
+});
+function showCtx(x, y, items) {
+  const m = $("ctx"); m.innerHTML = "";
+  for (const it of items) {
+    if (!it) { m.append(document.createElement("hr")); continue; }
+    const b = document.createElement("button"); b.innerHTML = it[0] + esc(it[1]);
+    b.onclick = () => { hideCtx(); it[2](); }; m.append(b);
+  }
+  m.classList.remove("hidden");
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.min(x, innerWidth - r.width - 8) + "px"; m.style.top = Math.min(y, innerHeight - r.height - 8) + "px";
+}
+const hideCtx = () => $("ctx").classList.add("hidden");
+const hidePop = () => $("jsonpop").classList.add("hidden");
+document.addEventListener("click", e => { if (!e.target.closest("#ctx")) hideCtx(); if (!e.target.closest("#jsonpop, .chip.obj")) hidePop(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { hideCtx(); hidePop(); } });
+
+// --- Waarden weergeven ---
+const isLangObj = v => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length && Object.keys(v).every(k => /^[a-z]{2,3}(-[A-Za-z0-9]+)*$/.test(k)) && Object.values(v).every(x => typeof x === "string");
+const isGeom = v => v && typeof v === "object" && typeof v.type === "string" && ("coordinates" in v || "geometries" in v);
+const countPts = c => typeof c?.[0] === "number" ? 1 : (c || []).reduce((a, x) => a + countPts(x), 0);
+function refLabel(id) {
+  const f = S.featById[id]; if (!f) return null;
+  const p = f.properties, t = f.feature_type;
+  if (t === "level") return (nm(p.short_name) ? nm(p.short_name) + " · " : "") + (nm(p.name) || "level");
+  if (t === "anchor") return "⚓ " + (refLabel(p.unit_id) || "anchor");
+  if (t === "address") return [p.address, p.locality].filter(Boolean).join(", ") || "address";
+  return nm(p.name) || prettyCat(p.category) || t;
+}
+function cellHtml(v) {
+  if (v == null || v === "") return '<span class="nil">—</span>';
+  if (typeof v === "boolean") return `<span class="chip bool-${v ? "t" : "f"}">${v ? "✓ ja" : "✗ nee"}</span>`;
+  if (typeof v === "number") return esc(v.toLocaleString("nl-NL", { maximumFractionDigits: 6 }));
+  if (typeof v === "string") {
+    const ref = refLabel(v);
+    if (ref) return `<span class="chip ref" data-ref="${esc(v)}" title="${esc(S.featById[v].feature_type + " · " + v)}">${esc(ref)}</span>`;
+    if (/^https?:\/\//.test(v)) return `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v.replace(/^https?:\/\//, ""))}</a>`;
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) { const d = new Date(v); if (!isNaN(d)) return `<span title="${esc(v)}">${esc(d.toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" }))}</span>`; }
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return `<span class="mono">${esc(v)}</span>`;
+    return esc(v);
+  }
+  if (isLangObj(v)) {
+    const keys = Object.keys(v), shown = nm(v), others = keys.length - 1;
+    return `<span title="${esc(keys.map(k => k + ": " + v[k]).join("\n"))}">${esc(shown)}</span>${others > 0 ? `<span class="lbadge">+${others}</span>` : ""}`;
+  }
+  if (Array.isArray(v)) {
+    if (!v.length) return '<span class="nil">[ ]</span>';
+    const max = 3, parts = v.slice(0, max).map(x => {
+      if (x != null && typeof x === "object") return objChip(x);
+      const ref = typeof x === "string" && refLabel(x);
+      return ref ? `<span class="chip ref" data-ref="${esc(x)}" title="${esc(x)}">${esc(ref)}</span>` : `<span class="chip">${esc(x)}</span>`;
+    });
+    if (v.length > max) parts.push(`<span class="chip obj more" data-json="1">+${v.length - max}</span>`);
+    return parts.join("");
+  }
+  return objChip(v);
+}
+function objChip(v) {
+  let label;
+  if (isGeom(v)) label = v.type + (v.coordinates ? ` · ${countPts(v.coordinates).toLocaleString("nl-NL")} pt` : "");
+  else if (isLangObj(v)) label = nm(v);
+  else { const ks = Object.keys(v); label = "{ " + ks.slice(0, 2).map(k => k + ": " + (v[k] != null && typeof v[k] === "object" ? "…" : String(v[k]).slice(0, 14))).join(", ") + (ks.length > 2 ? ", …" : "") + " }"; }
+  return `<span class="chip obj" data-json="1">${esc(label)}</span>`;
+}
+// Ingekleurde JSON voor de popover
+function jsonHtml(v, ind = "") {
+  const pad = ind + "  ";
+  if (v === null) return '<span class="j-z">null</span>';
+  if (typeof v === "string") { const r = refLabel(v); return `<span class="j-s">"${esc(v)}"</span>` + (r ? ` <span class="j-z">← ${esc(r)}</span>` : ""); }
+  if (typeof v === "number") return `<span class="j-n">${v}</span>`;
+  if (typeof v === "boolean") return `<span class="j-b">${v}</span>`;
+  if (Array.isArray(v)) {
+    if (!v.length) return "[]";
+    if (v.every(x => typeof x === "number")) return "[" + v.map(x => `<span class="j-n">${x}</span>`).join(", ") + "]";
+    const items = v.slice(0, 200).map(x => pad + jsonHtml(x, pad));
+    if (v.length > 200) items.push(pad + `<span class="j-z">… nog ${v.length - 200}</span>`);
+    return "[\n" + items.join(",\n") + "\n" + ind + "]";
+  }
+  const ks = Object.keys(v); if (!ks.length) return "{}";
+  return "{\n" + ks.map(k => `${pad}<span class="j-k">${esc(k)}</span>: ${jsonHtml(v[k], pad)}`).join(",\n") + "\n" + ind + "}";
+}
+function showJson(x, y, title, v) {
+  const p = $("jsonpop");
+  p.innerHTML = `<div class="jp-head">${esc(title)}</div><pre>${jsonHtml(v)}</pre>`;
+  p.classList.remove("hidden");
+  const r = p.getBoundingClientRect();
+  p.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
+  p.style.top = Math.max(8, Math.min(y + 12, innerHeight - r.height - 8)) + "px";
+}
+
+// --- Tabel opbouwen ---
+const rowVal = (f, c) => c === "id" ? f.id : c === "geometry" ? f.geometry : f.properties[c];
+function sortKey(v) {
+  if (v == null) return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return (refLabel(v) || v).toLowerCase();
+  if (isLangObj(v)) return (nm(v) || "").toLowerCase();
+  if (Array.isArray(v)) return v.length;
+  if (isGeom(v)) return v.type;
+  return JSON.stringify(v);
+}
+function searchText(f) {
+  const parts = [f.id];
+  for (const [k, v] of Object.entries(f.properties)) {
+    if (k.startsWith("_") || v == null) continue;
+    if (typeof v === "string") parts.push(v, refLabel(v) || "");
+    else if (isLangObj(v)) parts.push(...Object.values(v));
+    else if (Array.isArray(v)) v.forEach(x => parts.push(typeof x === "object" ? JSON.stringify(x) : String(x), (typeof x === "string" && refLabel(x)) || ""));
+    else parts.push(typeof v === "object" ? JSON.stringify(v) : String(v));
+  }
+  return parts.join(" ").toLowerCase();
+}
+const ordsOf = f => {
+  const p = f.properties;
+  if (f.feature_type === "level") return [p.ordinal];
+  if (p._ord != null) return [p._ord];
+  const pt = S.points[f.feature_type]?.find(x => x.properties._fid === f.id);
+  return pt ? pt.properties._ords : null;
+};
+function openTable(type) {
+  if (!S.loaded) return;
+  hideCtx();
+  T.type = type; T.rows = feats(type); T.sort = null; T.dir = 1; T.sel = null;
+  T.text = new Map();
+  // Kolommen: alle attributen (volgorde van eerste voorkomen, interne _-velden niet), dan geometrie
+  const keys = [], seen = new Set();
+  for (const f of T.rows) for (const k of Object.keys(f.properties || {})) if (!k.startsWith("_") && !seen.has(k)) { seen.add(k); keys.push(k); }
+  const allNull = k => T.rows.every(f => f.properties[k] == null);
+  const shown = keys.filter(k => !allNull(k)), hidden = keys.filter(allNull);
+  // Attributen eerst; id en geometrie achteraan (breed en minder vaak nodig)
+  T.cols = [...shown, "id"]; if (T.rows.some(f => f.geometry)) T.cols.push("geometry");
+  T.emptyCols = hidden;
+  // Kolombreedtes schatten op een steekproef
+  const sample = T.rows.slice(0, 300);
+  T.widths = T.cols.map(c => {
+    if (c === "id") return 300;
+    let m = c.length + 2;
+    for (const f of sample) { const v = rowVal(f, c); const tx = v == null ? "" : typeof v === "string" ? (refLabel(v) || v) : isLangObj(v) ? nm(v) + "  +1" : Array.isArray(v) ? v.slice(0, 3).map(x => (typeof x === "string" && refLabel(x)) || String(x).slice(0, 18)).join("   ") : typeof v === "object" ? "{ xxxxxxxxxxxxxxxxxxxx }" : String(v); m = Math.max(m, tx.length); }
+    return Math.max(70, Math.min(320, m * 7 + 26));
+  });
+  $("tbl-title").textContent = type;
+  $("tbl-q").value = "";
+  $("tbl-level").parentElement.classList.toggle("hidden", !T.rows.some(f => ordsOf(f)));
+  $("tbl").classList.remove("hidden");
+  $("tbl-zoom").disabled = true;
+  setHL(null);
+  const cg = $("tbl-table").querySelector("colgroup");
+  cg.innerHTML = '<col style="width:34px">' + T.widths.map(w => `<col style="width:${w}px">`).join("");
+  $("tbl-table").style.width = (34 + T.widths.reduce((a, b) => a + b, 0)) + "px";
+  renderHead(); applyTableFilter();
+  map.resize();
+}
+function renderHead() {
+  $("tbl-table").querySelector("thead").innerHTML = '<tr><th class="zoomcol" title="Zoom"></th>' + T.cols.map(c =>
+    `<th data-col="${esc(c)}" title="${esc(c)} — klik om te sorteren">${esc(c)}${T.sort === c ? `<span class="arr">${T.dir > 0 ? "▲" : "▼"}</span>` : ""}</th>`).join("") + "</tr>";
+  $("tbl-table").querySelectorAll("th[data-col]").forEach(th => th.onclick = () => {
+    const c = th.dataset.col;
+    if (T.sort === c) T.dir = -T.dir; else { T.sort = c; T.dir = 1; }
+    renderHead(); applyTableFilter(false);
+  });
+}
+function applyTableFilter(resetScroll = true) {
+  const q = $("tbl-q").value.trim().toLowerCase(), lvl = $("tbl-level").checked;
+  let v = T.rows;
+  if (lvl) v = v.filter(f => ordsOf(f)?.includes(S.ord));
+  if (q) v = v.filter(f => { let t = T.text.get(f); if (t == null) T.text.set(f, t = searchText(f)); return q.split(/\s+/).every(w => t.includes(w)); });
+  if (T.sort) {
+    const c = T.sort, d = T.dir;
+    v = v.map(f => [sortKey(rowVal(f, c)), f]).sort((a, b) => a[0] == null ? 1 : b[0] == null ? -1 : (a[0] < b[0] ? -d : a[0] > b[0] ? d : 0)).map(x => x[1]);
+  }
+  T.view = v;
+  $("tbl-count").textContent = `${v.length.toLocaleString("nl-NL")} van ${T.rows.length.toLocaleString("nl-NL")} regels` +
+    (T.emptyCols.length ? ` · ${T.emptyCols.length} lege kolom${T.emptyCols.length > 1 ? "men" : ""} verborgen` : "");
+  $("tbl-count").title = T.emptyCols.length ? "Altijd leeg: " + T.emptyCols.join(", ") : "";
+  if (resetScroll) $("tbl-scroll").scrollTop = 0;
+  renderRows();
+}
+// Virtueel scrollen: alleen de zichtbare regels staan in de DOM
+function renderRows() {
+  const sc = $("tbl-scroll"), body = $("tbl-table").querySelector("tbody");
+  const n = T.view.length, RH = T.RH, head = 31;
+  const first = Math.max(0, Math.floor((sc.scrollTop) / RH) - 10);
+  const last = Math.min(n, Math.ceil((sc.scrollTop + sc.clientHeight) / RH) + 10);
+  const colspan = T.cols.length + 1;
+  let html = first ? `<tr style="height:${first * RH}px"><td colspan="${colspan}" style="padding:0;border:0"></td></tr>` : "";
+  for (let i = first; i < last; i++) {
+    const f = T.view[i];
+    html += `<tr data-i="${i}"${T.sel === f ? ' class="sel"' : ""}><td class="zoomcol"><button class="zbtn" data-zoom="${i}" title="Zoom naar dit feature">${ZOOM_ICON}</button></td>` +
+      T.cols.map(c => { const v = rowVal(f, c); return `<td${typeof v === "number" ? ' class="num"' : ""} data-c="${esc(c)}">${c === "geometry" ? (v ? objChip(v) : '<span class="nil">—</span>') : c === "id" ? `<span class="mono">${esc(v)}</span>` : cellHtml(v)}</td>`; }).join("") + "</tr>";
+  }
+  if (last < n) html += `<tr style="height:${(n - last) * RH}px"><td colspan="${colspan}" style="padding:0;border:0"></td></tr>`;
+  if (!n) html = `<tr><td colspan="${colspan}" class="nil" style="text-align:center;height:60px">Geen regels${$("tbl-q").value ? " voor deze zoekopdracht" : ""}</td></tr>`;
+  body.innerHTML = html;
+}
+$("tbl-scroll").addEventListener("scroll", () => { if (!T.raf) T.raf = requestAnimationFrame(() => { T.raf = 0; renderRows(); }); });
+$("tbl-q").oninput = () => applyTableFilter();
+$("tbl-level").onchange = () => applyTableFilter();
+$("tbl-close").onclick = () => { $("tbl").classList.add("hidden"); setHL(null); T.sel = null; map.resize(); };
+$("tbl-zoom").onclick = () => T.sel && zoomTo(T.sel);
+$("tbl-table").addEventListener("click", e => {
+  const ref = e.target.closest("[data-ref]");
+  if (ref) { const f = S.featById[ref.dataset.ref]; if (f) { selectFeature(f); zoomTo(f); } return; }
+  const obj = e.target.closest("[data-json]");
+  if (obj) { const td = obj.closest("td"), f = T.view[+td.parentElement.dataset.i]; e.stopPropagation();
+    showJson(e.clientX, e.clientY, `${T.type} · ${td.dataset.c}`, rowVal(f, td.dataset.c)); return; }
+  const z = e.target.closest("[data-zoom]");
+  if (z) { const f = T.view[+z.dataset.zoom]; selectFeature(f); zoomTo(f); return; }
+  const tr = e.target.closest("tr[data-i]");
+  if (tr) selectFeature(T.view[+tr.dataset.i]);
+});
+$("tbl-table").addEventListener("dblclick", e => { const tr = e.target.closest("tr[data-i]"); if (tr) zoomTo(T.view[+tr.dataset.i]); });
+// Hoogte aanpassen door te slepen
+(() => {
+  try { const h = localStorage.getItem("imdf-tbl-h"); if (h) $("tbl").style.setProperty("--tbl-h", h + "px"); } catch {}
+  let y0, h0;
+  const move = e => { const h = Math.max(120, Math.min(innerHeight * 0.8, h0 + (y0 - e.clientY))); $("tbl").style.setProperty("--tbl-h", h + "px"); map.resize(); renderRows(); };
+  const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.cursor = "";
+    try { localStorage.setItem("imdf-tbl-h", Math.round($("tbl").getBoundingClientRect().height)); } catch {} };
+  $("tbl-grip").addEventListener("pointerdown", e => { e.preventDefault(); y0 = e.clientY; h0 = $("tbl").getBoundingClientRect().height;
+    document.body.style.cursor = "ns-resize"; addEventListener("pointermove", move); addEventListener("pointerup", up); });
+})();
+
+// --- Oplichten en zoomen op de kaart ---
+function geomOf(f) {
+  if (f.feature_type === "occupant") return S.anchorById[f.properties.anchor_id]?.geometry || null;
+  if (f.feature_type === "amenity") return f.geometry || S.unitById[(f.properties.unit_ids || [])[0]]?.properties.display_point || null;
+  if (f.feature_type === "anchor") return f.geometry;
+  return f.geometry || f.properties.display_point || null;
+}
+function setHL(f) {
+  const src = map.getSource("hl"); if (!src) return;
+  const g = f && geomOf(f);
+  src.setData(fc(g ? [{ type: "Feature", geometry: g, properties: {} }] : []));
+}
+function selectFeature(f) {
+  T.sel = f; $("tbl-zoom").disabled = !geomOf(f);
+  const o = ordsOf(f);
+  if (o && o.length && !o.includes(S.ord) && S.ordinals.includes(o[0])) setLevel(o[0]);
+  setHL(f); renderRows();
+}
+function zoomTo(f) {
+  const g = geomOf(f); if (!g) return;
+  const b = new maplibregl.LngLatBounds();
+  const walk = c => typeof c[0] === "number" ? b.extend(c) : c.forEach(walk);
+  walk(g.coordinates);
+  const center = b.getCenter();
+  if (g.type === "Point") map.flyTo({ center, zoom: Math.max(map.getZoom(), 19) });
+  else map.fitBounds(b, { padding: 60, maxZoom: 20.5 });
+  map.once("moveend", () => { if (T.sel === f) showPopup(f, g.type === "Point" ? g.coordinates : center); });
+}
 
 // ---------- Search ----------
 $("search").oninput = () => {
