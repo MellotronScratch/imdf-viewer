@@ -105,6 +105,13 @@ function build() {
       _name: nm(p.name) || "Occupant", _color: groupColor(OCC_GROUPS, p.category),
       _icon: "oc-" + (p.category || "unspecified") } });
   }
+  // Zoekvelden per punt voor het zoekveld in de zijbalk: namen (alle talen), categorie en id's
+  S.searchKeys = new Map();
+  const names = o => o && typeof o === "object" ? Object.values(o).filter(v => typeof v === "string") : [];
+  for (const o of feats("occupant")) S.searchKeys.set(o.id, { text: [...names(o.properties.name), o.properties.category || ""].join(" ").toLowerCase(),
+    ids: [["id", o.id], ["anchor_id", o.properties.anchor_id]].filter(([, v]) => typeof v === "string") });
+  for (const a of feats("amenity")) S.searchKeys.set(a.id, { text: [...names(a.properties.name), a.properties.category || ""].join(" ").toLowerCase(),
+    ids: [["id", a.id], ...(a.properties.unit_ids || []).map(u => ["unit_ids", u])].filter(([, v]) => typeof v === "string") });
   // Snel opzoeken van het kaartpunt van een amenity/occupant (voor tabel en validatie)
   S.pointById = new Map([...S.points.amenity, ...S.points.occupant].map(p => [p.properties._fid, p]));
   renderInfo();

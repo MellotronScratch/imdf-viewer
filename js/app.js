@@ -6,12 +6,18 @@ $("search").oninput = debounce(() => {
   const q = $("search").value.trim().toLowerCase(), box = $("results");
   box.innerHTML = "";
   if (q.length < 2) return;
-  const all = [...S.points.occupant, ...S.points.amenity]
-    .filter(p => p.properties._name.toLowerCase().includes(q) || p.properties.category.includes(q)).slice(0, 60);
-  if (!all.length) { box.innerHTML = '<div style="cursor:default;color:var(--muted)">Niets gevonden</div>'; return; }
-  for (const p of all) {
+  // Op naam (alle talen) en categorie, en op id's: occupant-id en anchor_id, amenity-id en unit_ids
+  const hits = [];
+  for (const p of [...S.points.occupant, ...S.points.amenity]) {
+    const k = S.searchKeys?.get(p.properties._fid); if (!k) continue;
+    const byId = k.ids.find(([, v]) => v.toLowerCase().includes(q));
+    if (k.text.includes(q) || byId) hits.push({ p, via: byId && !k.text.includes(q) ? byId[0] : null });
+    if (hits.length >= 60) break;
+  }
+  if (!hits.length) { box.innerHTML = '<div style="cursor:default;color:var(--muted)">Niets gevonden</div>'; return; }
+  for (const { p, via } of hits) {
     const d = document.createElement("div"), pr = p.properties;
-    d.innerHTML = `${iconImg(pr.category, 16, pr._type)}${esc(pr._name)}<small>${esc(nm((S.levelsByOrd.get(pr._ords[0]) || [])[0]?.properties.short_name) || pr._ords[0])}</small>`;
+    d.innerHTML = `${iconImg(pr.category, 16, pr._type)}<span class="res-name">${esc(pr._name)}${via ? `<span class="res-via">${esc(via)}</span>` : ""}</span><small>${esc(nm((S.levelsByOrd.get(pr._ords[0]) || [])[0]?.properties.short_name) || pr._ords[0])}</small>`;
     d.onclick = () => {
       setLevel(pr._ords[0]);
       map.flyTo({ center: p.geometry.coordinates, zoom: Math.max(map.getZoom(), 19) });
