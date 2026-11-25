@@ -119,6 +119,7 @@
   <div class="scroll">
     <div class="row" style="margin-top:8px">
       <button class="btn" id="open-btn">Ander bestand openen…</button>
+      <button class="btn hidden" id="close-btn" title="Bestand sluiten en niet meer onthouden">Sluiten</button>
     </div>
 
     <h2>Zoeken</h2>
@@ -126,7 +127,7 @@
     <div id="results"></div>
 
     <h2>Lagen</h2>
-    <label class="chk"><input type="checkbox" data-layer="occupant" checked><span class="dot" style="background:#c2477f"></span>Occupants<span class="cnt" id="cnt-occupant"></span></label>
+    <label class="chk"><input type="checkbox" data-layer="occupant" checked><span id="occupant-legend-icon"></span>Occupants<span class="cnt" id="cnt-occupant"></span></label>
     <label class="chk"><input type="checkbox" data-layer="amenity" checked><span id="amenity-legend-icon"></span>Amenities<span class="cnt" id="cnt-amenity"></span></label>
     <label class="chk"><input type="checkbox" data-layer="labels" checked>Namen tonen</label>
     <label class="chk"><input type="checkbox" data-layer="unit" checked>Units</label>
@@ -164,7 +165,7 @@
 const PALETTE = {
   light: {
     bg: "#e9edf2", venueFill: "#ffffff", venueLine: "#4c5fd5", levelFill: "#fbfcfd", levelLine: "#8a95a5",
-    line: "#c3cbd6", detail: "#a3adbb", opening: "#fbfcfd", text: "#1d2330", halo: "#ffffff", ptStroke: "#ffffff",
+    line: "#c3cbd6", detail: "#a3adbb", opening: "#fbfcfd", text: "#1d2330", halo: "#ffffff",
     unitOpacity: 1, sectionOpacity: 0.85, fixtureOpacity: 1, kiosk: "#c9d1dc",
     raster: { opacity: 0.6, sat: 0, min: 0, max: 1 },
     unit: { walkway: "#fbfcfd", room: "#eef1f6", nonpublic: "#e1e5eb", structure: "#c5ccd6", unspecified: "#f1f3f7",
@@ -177,7 +178,7 @@ const PALETTE = {
   },
   dark: {
     bg: "#0b0f15", venueFill: "#111720", venueLine: "#8d9bff", levelFill: "#121821", levelLine: "#556277",
-    line: "#3a4659", detail: "#465367", opening: "#232c39", text: "#e7ebf2", halo: "#0b0f15", ptStroke: "#0f141b",
+    line: "#3a4659", detail: "#465367", opening: "#232c39", text: "#e7ebf2", halo: "#0b0f15",
     unitOpacity: 1, sectionOpacity: 0.8, fixtureOpacity: 1, kiosk: "#36404f",
     raster: { opacity: 0.5, sat: -1, min: 0.8, max: 0.06 },   // min>max keert de grijze BRT-tegels om → donkere ondergrond
     unit: { walkway: "#232c39", room: "#2c3647", nonpublic: "#1d2530", structure: "#465266", unspecified: "#283241",
@@ -282,33 +283,73 @@ const AMENITY_ICONS = {"carrental":"M9 0C7.3 0 6 1.3 6 3S7.3 6 9 6C10.3 6 11.4 5
   "fieldofplay":"M7 5L3 7V3L7 5M18 3V7L22 5L18 3M11 2V6L15 4L11 2M5 10C6.4 10.5 8.8 11 12 11S17.6 10.5 19 10C19 9.8 16.2 9 12 9S5 9.9 5 10M15 17H9V21.9C4.9 21.5 2 20.4 2 19V10C2 8.3 6.5 7 12 7S22 8.3 22 10V19C22 20.3 19.1 21.5 15 21.9V17Z",
   "library":"M9 3V18H12V3H9M12 5L16 18L19 17L15 4L12 5M5 5V18H8V5H5M3 19V21H21V19H3Z"};
 
+// Occupant-iconen: eveneens Material Design Icons v7.4.47 (Apache 2.0), per IMDF-occupantcategorie.
+const OCC_ICONS = {"coffee":"M2,21H20V19H2M20,8H18V5H20M20,3H4V13A4,4 0 0,0 8,17H14A4,4 0 0,0 18,13V10H20A2,2 0 0,0 22,8V5C22,3.89 21.1,3 20,3Z",
+  "luggage":"M17.03 6C18.11 6 19 6.88 19 8V19C19 20.13 18.11 21 17.03 21C17.03 21.58 16.56 22 16 22C15.5 22 15 21.58 15 21H9C9 21.58 8.5 22 8 22C7.44 22 6.97 21.58 6.97 21C5.89 21 5 20.13 5 19V8C5 6.88 5.89 6 6.97 6H9V3C9 2.42 9.46 2 10 2H14C14.54 2 15 2.42 15 3V6H17.03M13.5 6V3.5H10.5V6H13.5M8 9V18H9.5V9H8M14.5 9V18H16V9H14.5M11.25 9V18H12.75V9H11.25Z",
+  "restaurant":"M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z",
+  "souvenirs":"M9.06,1.93C7.17,1.92 5.33,3.74 6.17,6H3A2,2 0 0,0 1,8V10A1,1 0 0,0 2,11H11V8H13V11H22A1,1 0 0,0 23,10V8A2,2 0 0,0 21,6H17.83C19,2.73 14.6,0.42 12.57,3.24L12,4L11.43,3.22C10.8,2.33 9.93,1.94 9.06,1.93M9,4C9.89,4 10.34,5.08 9.71,5.71C9.08,6.34 8,5.89 8,5A1,1 0 0,1 9,4M15,4C15.89,4 16.34,5.08 15.71,5.71C15.08,6.34 14,5.89 14,5A1,1 0 0,1 15,4M2,12V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V12H13V20H11V12H2Z",
+  "fashion":"M12 4A3.5 3.5 0 0 0 8.5 7.5H10.5A1.5 1.5 0 0 1 12 6A1.5 1.5 0 0 1 13.5 7.5A1.5 1.5 0 0 1 12 9C11.45 9 11 9.45 11 10V11.75L2.4 18.2A1 1 0 0 0 3 20H21A1 1 0 0 0 21.6 18.2L13 11.75V10.85A3.5 3.5 0 0 0 15.5 7.5A3.5 3.5 0 0 0 12 4M12 13.5L18 18H6Z",
+  "jewelry":"M16,9H19L14,16M10,9H14L12,17M5,9H8L10,16M15,4H17L19,7H16M11,4H13L14,7H10M7,4H9L8,7H5M6,2L2,8L12,22L22,8L18,2H6Z",
+  "books":"M19 2L14 6.5V17.5L19 13V2M6.5 5C4.55 5 2.45 5.4 1 6.5V21.16C1 21.41 1.25 21.66 1.5 21.66C1.6 21.66 1.65 21.59 1.75 21.59C3.1 20.94 5.05 20.5 6.5 20.5C8.45 20.5 10.55 20.9 12 22C13.35 21.15 15.8 20.5 17.5 20.5C19.15 20.5 20.85 20.81 22.25 21.56C22.35 21.61 22.4 21.59 22.5 21.59C22.75 21.59 23 21.34 23 21.09V6.5C22.4 6.05 21.75 5.75 21 5.5V19C19.9 18.65 18.7 18.5 17.5 18.5C15.8 18.5 13.35 19.15 12 20V6.5C10.55 5.4 8.45 5 6.5 5Z",
+  "cosmetics":"M9 23C8.45 23 8 22.55 8 22V13C8 12.45 8.45 12 9 12H15C15.55 12 16 12.45 16 13V22C16 22.55 15.55 23 15 23H9M10 11C9.45 11 9 10.55 9 10V5.25C9 5.25 11 3 11.75 1C12.83 1.67 13.92 2.33 14.46 3.83C15 5.33 15 7.67 15 10C15 10.55 14.55 11 14 11H10Z",
+  "bank":"M11.5,1L2,6V8H21V6M16,10V17H19V10M2,22H21V19H2M10,10V17H13V10M4,10V17H7V10H4Z",
+  "bar":"M7.5,7L5.5,5H18.5L16.5,7M11,13V19H6V21H18V19H13V13L21,5V3H3V5L11,13Z",
+  "computersandaccessories":"M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z",
+  "massagetherapy":"M20 17Q20.86 17 21.45 17.6T22.03 19L14 22L7 20V11H8.95L16.22 13.69Q17 14 17 14.81 17 15.28 16.66 15.63T15.8 16H13L11.25 15.33L10.92 16.27L13 17H20M16 3.23Q17.06 2 18.7 2 20.06 2 21 3T22 5.3Q22 6.33 21 7.76T19.03 10.15 16 13Q13.92 11.11 12.94 10.15T10.97 7.76 10 5.3Q10 3.94 10.97 3T13.31 2Q14.91 2 16 3.23M.984 11H5V22H.984V11Z",
+  "dutyfree":"M12,13A5,5 0 0,1 7,8H9A3,3 0 0,0 12,11A3,3 0 0,0 15,8H17A5,5 0 0,1 12,13M12,3A3,3 0 0,1 15,6H9A3,3 0 0,1 12,3M19,6H17A5,5 0 0,0 12,1A5,5 0 0,0 7,6H5C3.89,6 3,6.89 3,8V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V8C21,6.89 20.1,6 19,6Z",
+  "delicatessen":"M22,19L19,17L22,15V19M15,15L19,9L22,13L18,16L15,15M5,17L2,19V15L5,17M9,15L6,16L2,13L5,9L9,15M14,6L18,8L13,15H11L6,8L10,6H14Z",
+  "phonechargingstation":"M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.66C6,21.4 6.6,22 7.33,22H16.66C17.4,22 18,21.4 18,20.67V5.33C18,4.6 17.4,4 16.67,4M11,20V14.5H9L13,7V12.5H15",
+  "pharmacy":"M4.22,11.29L11.29,4.22C13.64,1.88 17.43,1.88 19.78,4.22C22.12,6.56 22.12,10.36 19.78,12.71L12.71,19.78C10.36,22.12 6.56,22.12 4.22,19.78C1.88,17.43 1.88,13.64 4.22,11.29M5.64,12.71C4.59,13.75 4.24,15.24 4.6,16.57L10.59,10.59L14.83,14.83L18.36,11.29C19.93,9.73 19.93,7.2 18.36,5.64C16.8,4.07 14.27,4.07 12.71,5.64L5.64,12.71Z",
+  "hotel":"M19,7H11V14H3V5H1V20H3V17H21V20H23V11A4,4 0 0,0 19,7M7,13A3,3 0 0,0 10,10A3,3 0 0,0 7,7A3,3 0 0,0 4,10A3,3 0 0,0 7,13Z",
+  "chocolate":"M15.54 8.46C17.5 10.42 17.5 13.58 15.54 15.54S10.42 17.5 8.47 15.54 6.5 10.42 8.47 8.46 13.58 6.5 15.54 8.46M19.47 4.55C19.47 4.55 18.5 4.67 17.43 5.36C17.28 4.32 16.78 3.27 15.93 2.42C14.68 3.66 14.53 5.22 14.83 6.34C16.22 6.7 17.3 7.78 17.66 9.17C18.78 9.47 20.34 9.32 21.58 8.07C20.74 7.23 19.71 6.74 18.68 6.58C19.07 6 19.38 5.33 19.47 4.55M4.53 19.45C4.53 19.45 5.5 19.33 6.57 18.64C6.72 19.68 7.22 20.73 8.07 21.58C9.32 20.34 9.47 18.78 9.17 17.66C7.78 17.3 6.7 16.22 6.34 14.83C5.22 14.53 3.66 14.68 2.42 15.93C3.26 16.77 4.29 17.27 5.32 17.42C4.93 18 4.62 18.68 4.53 19.45Z",
+  "dayspa":"M15.5,9.63C15.31,6.84 14.18,4.12 12.06,2C9.92,4.14 8.74,6.86 8.5,9.63C9.79,10.31 10.97,11.19 12,12.26C13.03,11.2 14.21,10.32 15.5,9.63M12,15.45C9.85,12.17 6.18,10 2,10C2,20 11.32,21.89 12,22C12.68,21.88 22,20 22,10C17.82,10 14.15,12.17 12,15.45Z",
+  "corporateoffices":"M5,3V21H11V17.5H13V21H19V3H5M7,5H9V7H7V5M11,5H13V7H11V5M15,5H17V7H15V5M7,9H9V11H7V9M11,9H13V11H11V9M15,9H17V11H15V9M7,13H9V15H7V13M11,13H13V15H11V13M15,13H17V15H15V13M7,17H9V19H7V17M15,17H17V19H15V17Z",
+  "fastfood":"M22 13C22 14.11 21.11 15 20 15H4C2.9 15 2 14.11 2 13S2.9 11 4 11H13L15.5 13L18 11H20C21.11 11 22 11.9 22 13M12 3C3 3 3 9 3 9H21C21 9 21 3 12 3M3 18C3 19.66 4.34 21 6 21H18C19.66 21 21 19.66 21 18V17H3V18Z",
+  "bakery":"M5 22C3.68 22 3.15 19.64 3.04 18.7A5.56 5.56 0 0 1 3.36 16A2.5 2.5 0 0 1 5.23 14.38C6.4 14.18 7.23 14.88 8.29 15.12A1.21 1.21 0 0 0 9.85 13.75C9.41 12.03 6.28 12 5 12C5 10.14 7.04 9.9 8.5 10.04A10.8 10.8 0 0 1 11.04 10.6C11.54 10.77 12.12 11.2 12.67 11.16C13.5 11.09 13.67 10.23 13.31 9.6C12.44 8.12 9.97 8 8.5 8C8.5 6 10.23 5.62 11.89 5.92A11.58 11.58 0 0 1 14.38 6.71C14.89 6.93 15.5 7.35 16.06 7.16C17.5 6.72 16 5.18 15.36 4.81A6.6 6.6 0 0 0 13.94 4.23C13.4 4.07 12.74 4.13 13.23 3.5A5.13 5.13 0 0 1 15.96 2.26C17.85 1.82 20.46 1.74 20.92 4.12A5.3 5.3 0 0 1 20.07 7.7A38.96 38.96 0 0 1 13.22 16.33A36.6 36.6 0 0 1 8.62 20.32C7.62 21.04 6.3 22 5 22Z",
+  "icecream":"M17.5 6.05C17.25 3.22 14.89 1 12 1S6.75 3.22 6.5 6.05C5.09 6.28 4 7.5 4 9C4 10.66 5.34 12 7 12L12 22L17 12C18.66 12 20 10.66 20 9C20 7.5 18.91 6.28 17.5 6.05M12 17.53L8.89 11.31C8.95 11.26 9 11.21 9.08 11.16C9.93 11.69 10.93 12 12 12S14.07 11.69 14.92 11.16C15 11.21 15.05 11.26 15.11 11.31L12 17.53Z",
+  "foodandbeverage":"M18.06 23H19.72C20.56 23 21.25 22.35 21.35 21.53L23 5.05H18V1H16.03V5.05H11.06L11.36 7.39C13.07 7.86 14.67 8.71 15.63 9.65C17.07 11.07 18.06 12.54 18.06 14.94V23M1 22V21H16.03V22C16.03 22.54 15.58 23 15 23H2C1.45 23 1 22.54 1 22M16.03 15C16.03 7 1 7 1 15H16.03M1 17H16V19H1V17Z",
+  "currencyexchange":"M5,6H23V18H5V6M14,9A3,3 0 0,1 17,12A3,3 0 0,1 14,15A3,3 0 0,1 11,12A3,3 0 0,1 14,9M9,8A2,2 0 0,1 7,10V14A2,2 0 0,1 9,16H19A2,2 0 0,1 21,14V10A2,2 0 0,1 19,8H9M1,10H3V20H19V22H1V10Z",
+  "electronics":"M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21A2,2 0 0,0 7,23H17A2,2 0 0,0 19,21V3C19,1.89 18.1,1 17,1Z",
+  "toys":"M15.75 19.13C14.92 19.13 14.25 18.29 14.25 17.25C14.25 16.22 14.92 15.38 15.75 15.38C16.58 15.38 17.25 16.22 17.25 17.25C17.25 18.29 16.58 19.13 15.75 19.13M12 11.25C10.76 11.25 9.75 10.41 9.75 9.38C9.75 8.34 10.76 7.5 12 7.5C13.24 7.5 14.25 8.34 14.25 9.38C14.25 10.41 13.24 11.25 12 11.25M8.25 19.13C7.42 19.13 6.75 18.29 6.75 17.25C6.75 16.22 7.42 15.38 8.25 15.38C9.08 15.38 9.75 16.22 9.75 17.25C9.75 18.29 9.08 19.13 8.25 19.13M12 8.25C12.41 8.25 12.75 8.59 12.75 9C12.75 9.41 12.41 9.75 12 9.75C11.59 9.75 11.25 9.41 11.25 9C11.25 8.59 11.59 8.25 12 8.25M18.75 12C18.43 12 18.12 12.07 17.84 12.2C17.36 11.59 16.71 11.07 15.93 10.67C16.5 9.87 16.84 8.9 16.84 7.85C16.84 7.83 16.84 7.81 16.84 7.79C17.93 7.56 18.75 6.59 18.75 5.42C18.75 4.09 17.66 3 16.33 3C15.64 3 15 3.29 14.58 3.75C13.83 3.28 12.95 3 12 3C11.05 3 10.16 3.28 9.42 3.75C9 3.29 8.36 3 7.67 3C6.34 3 5.25 4.09 5.25 5.42C5.25 6.58 6.07 7.55 7.15 7.79C7.15 7.81 7.15 7.83 7.15 7.85C7.15 8.9 7.5 9.88 8.06 10.67C7.29 11.07 6.64 11.59 6.16 12.2C5.88 12.07 5.57 12 5.25 12C4 12 3 13 3 14.25C3 15.5 4 16.5 5.25 16.5C5.27 16.5 5.29 16.5 5.31 16.5C5.27 16.74 5.25 17 5.25 17.25C5.25 19.32 6.59 21 8.25 21C9.26 21 10.15 20.37 10.7 19.41C11.12 19.47 11.55 19.5 12 19.5C12.45 19.5 12.88 19.47 13.3 19.41C13.85 20.37 14.74 21 15.75 21C17.41 21 18.75 19.32 18.75 17.25C18.75 17 18.73 16.74 18.69 16.5C18.71 16.5 18.73 16.5 18.75 16.5C20 16.5 21 15.5 21 14.25C21 13 20 12 18.75 12",
+  "sportinggoods":"M2.34,14.63C2.94,14.41 3.56,14.3 4.22,14.3C5.56,14.3 6.73,14.72 7.73,15.56L4.59,18.7C3.53,17.5 2.78,16.13 2.34,14.63M15.56,9.8C17.53,11.27 19.66,11.63 21.94,10.88C21.97,11.09 22,11.47 22,12C22,13.03 21.75,14.18 21.28,15.45C20.81,16.71 20.23,17.73 19.55,18.5L13.22,12.19L15.56,9.8M8.77,16.64C9.83,18.17 10.05,19.84 9.42,21.66C8,21.25 6.73,20.61 5.67,19.73L8.77,16.64M12.19,13.22L18.5,19.55C16.33,21.45 13.78,22.25 10.88,21.94C11.09,21.28 11.2,20.56 11.2,19.78C11.2,19.16 11.06,18.43 10.78,17.6C10.5,16.77 10.17,16.09 9.8,15.56L12.19,13.22M8.81,14.5C7.88,13.67 6.8,13.15 5.58,12.91C4.36,12.68 3.19,12.75 2.06,13.13C2.03,12.91 2,12.53 2,12C2,10.97 2.25,9.82 2.72,8.55C3.19,7.29 3.77,6.27 4.45,5.5L11.11,12.19L8.81,14.5M15.56,7.73C14.22,6.08 13.91,4.28 14.63,2.34C15.25,2.5 15.96,2.8 16.76,3.26C17.55,3.71 18.2,4.16 18.7,4.59L15.56,7.73M21.66,9.38C21.06,9.59 20.44,9.7 19.78,9.7C18.69,9.7 17.64,9.38 16.64,8.72L19.73,5.67C20.61,6.77 21.25,8 21.66,9.38M12.19,11.11L5.5,4.45C7.67,2.55 10.22,1.75 13.13,2.06C12.91,2.72 12.8,3.44 12.8,4.22C12.8,4.94 12.96,5.75 13.29,6.66C13.62,7.56 14,8.28 14.5,8.81L12.19,11.11Z",
+  "shoes":"M21.5,9V8H20.5L19.5,9H15L14,8H13L7,12H4A2,2 0 0,0 2,14V16H10L13,15H15V16H21.5V14C21.5,14 22,13 22,11.5C22,10 21.5,9 21.5,9Z",
+  "eyewear":"M3,10C2.76,10 2.55,10.09 2.41,10.25C2.27,10.4 2.21,10.62 2.24,10.86L2.74,13.85C2.82,14.5 3.4,15 4,15H7C7.64,15 8.36,14.44 8.5,13.82L9.56,10.63C9.6,10.5 9.57,10.31 9.5,10.19C9.39,10.07 9.22,10 9,10H3M7,17H4C2.38,17 0.96,15.74 0.76,14.14L0.26,11.15C0.15,10.3 0.39,9.5 0.91,8.92C1.43,8.34 2.19,8 3,8H9C9.83,8 10.58,8.35 11.06,8.96C11.17,9.11 11.27,9.27 11.35,9.45C11.78,9.36 12.22,9.36 12.64,9.45C12.72,9.27 12.82,9.11 12.94,8.96C13.41,8.35 14.16,8 15,8H21C21.81,8 22.57,8.34 23.09,8.92C23.6,9.5 23.84,10.3 23.74,11.11L23.23,14.18C23.04,15.74 21.61,17 20,17H17C15.44,17 13.92,15.81 13.54,14.3L12.64,11.59C12.26,11.31 11.73,11.31 11.35,11.59L10.43,14.37C10.07,15.82 8.56,17 7,17M15,10C14.78,10 14.61,10.07 14.5,10.19C14.42,10.31 14.4,10.5 14.45,10.7L15.46,13.75C15.64,14.44 16.36,15 17,15H20C20.59,15 21.18,14.5 21.25,13.89L21.76,10.82C21.79,10.62 21.73,10.4 21.59,10.25C21.45,10.09 21.24,10 21,10H15Z",
+  "florist":"M3,13A9,9 0 0,0 12,22C12,17 7.97,13 3,13M12,5.5A2.5,2.5 0 0,1 14.5,8A2.5,2.5 0 0,1 12,10.5A2.5,2.5 0 0,1 9.5,8A2.5,2.5 0 0,1 12,5.5M5.6,10.25A2.5,2.5 0 0,0 8.1,12.75C8.63,12.75 9.12,12.58 9.5,12.31C9.5,12.37 9.5,12.43 9.5,12.5A2.5,2.5 0 0,0 12,15A2.5,2.5 0 0,0 14.5,12.5C14.5,12.43 14.5,12.37 14.5,12.31C14.88,12.58 15.37,12.75 15.9,12.75C17.28,12.75 18.4,11.63 18.4,10.25C18.4,9.25 17.81,8.4 16.97,8C17.81,7.6 18.4,6.74 18.4,5.75C18.4,4.37 17.28,3.25 15.9,3.25C15.37,3.25 14.88,3.41 14.5,3.69C14.5,3.63 14.5,3.56 14.5,3.5A2.5,2.5 0 0,0 12,1A2.5,2.5 0 0,0 9.5,3.5C9.5,3.56 9.5,3.63 9.5,3.69C9.12,3.41 8.63,3.25 8.1,3.25A2.5,2.5 0 0,0 5.6,5.75C5.6,6.74 6.19,7.6 7.03,8C6.19,8.4 5.6,9.25 5.6,10.25M12,22A9,9 0 0,0 21,13C16,13 12,17 12,22Z",
+  "music":"M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z",
+  "spa":"M15.5,9.63C15.31,6.84 14.18,4.12 12.06,2C9.92,4.14 8.74,6.86 8.5,9.63C9.79,10.31 10.97,11.19 12,12.26C13.03,11.2 14.21,10.32 15.5,9.63M12,15.45C9.85,12.17 6.18,10 2,10C2,20 11.32,21.89 12,22C12.68,21.88 22,20 22,10C17.82,10 14.15,12.17 12,15.45Z",
+  "unspecified":"M5.06 3C4.63 3 4.22 3.14 3.84 3.42C3.46 3.7 3.24 4.06 3.14 4.5L2.11 8.91C1.86 10 2.06 10.92 2.69 11.73C2.81 11.85 2.93 11.97 3.04 12.07C3.63 12.64 4.28 13 5.22 13C6.16 13 6.91 12.59 7.47 12.05C8.1 12.67 8.86 13 9.8 13C10.64 13 11.44 12.63 12 12.07C12.68 12.7 13.45 13 14.3 13C15.17 13 15.91 12.67 16.54 12.05C17.11 12.62 17.86 13 18.81 13C19.76 13 20.43 12.65 21 12.06C21.09 11.97 21.18 11.87 21.28 11.77C21.94 10.95 22.14 10 21.89 8.91L20.86 4.5C20.73 4.06 20.5 3.7 20.13 3.42C19.77 3.14 19.38 3 18.94 3M18.89 4.97L19.97 9.38C20.06 9.81 19.97 10.2 19.69 10.55C19.44 10.86 19.13 11 18.75 11C18.44 11 18.17 10.9 17.95 10.66C17.73 10.43 17.61 10.16 17.58 9.84L16.97 5M5.06 5H7.03L6.42 9.84C6.3 10.63 5.91 11 5.25 11C4.84 11 4.53 10.86 4.31 10.55C4.03 10.2 3.94 9.81 4.03 9.38M9.05 5H11V9.7C11 10.05 10.89 10.35 10.64 10.62C10.39 10.88 10.08 11 9.7 11C9.36 11 9.07 10.88 8.84 10.59C8.61 10.3 8.5 10 8.5 9.66V9.5M13 5H14.95L15.5 9.5C15.58 9.92 15.5 10.27 15.21 10.57C14.95 10.87 14.61 11 14.2 11C13.89 11 13.61 10.88 13.36 10.62C13.11 10.35 13 10.05 13 9.7M3 14.03V19C3 20.11 3.89 21 5 21C9.67 21 14.33 21 19 21C20.1 21 21 20.11 21 19V14.05C20.45 14.63 19.75 14.96 19 15C18 15.03 17.25 14.74 16.54 14.05C15.94 14.65 15.14 15 14.3 15C13.4 15 12.6 14.64 12 14.07C11.43 14.64 10.65 15 9.78 15C8.87 15 8.07 14.65 7.47 14.05C6.89 14.64 6.1 15 5.23 15C4.33 15 3.66 14.65 3 14.03Z"};
+
 // Zoek het best passende icoon: "checkin.desk.transfer" → "checkin.desk" → "checkin" → standaard
-function iconKey(cat) {
+function iconKey(cat, icons = AMENITY_ICONS) {
   let c = cat || "unspecified";
   while (c) {
-    if (AMENITY_ICONS[c]) return c;
+    if (icons[c]) return c;
     c = c.includes(".") ? c.slice(0, c.lastIndexOf(".")) : null;
   }
   return "unspecified";
 }
 // Tekent een rond icoon (groepskleur, wit pictogram) op een canvas
 const ICON_SIZE = 26, ICON_RATIO = 2, iconCache = {};
-function iconCanvas(cat) {
-  if (iconCache[cat]) return iconCache[cat];
+function iconCanvas(cat, kind = "amenity") {
+  const key = kind + ":" + cat;
+  if (iconCache[key]) return iconCache[key];
+  const occ = kind === "occupant";
   const px = ICON_SIZE * ICON_RATIO, cv = document.createElement("canvas");
   cv.width = cv.height = px;
   const ctx = cv.getContext("2d"), r = px / 2;
   ctx.beginPath(); ctx.arc(r, r, r - 2 * ICON_RATIO * 0.5, 0, Math.PI * 2);
-  ctx.fillStyle = groupColor(AMENITY_GROUPS, cat); ctx.fill();
+  ctx.fillStyle = groupColor(occ ? OCC_GROUPS : AMENITY_GROUPS, cat); ctx.fill();
   ctx.lineWidth = 1.5 * ICON_RATIO; ctx.strokeStyle = "#ffffff"; ctx.stroke();
   const inner = px * 0.6, s = inner / 24;
   ctx.setTransform(s, 0, 0, s, (px - inner) / 2, (px - inner) / 2);
-  ctx.fillStyle = "#ffffff"; ctx.fill(new Path2D(AMENITY_ICONS[iconKey(cat)]));
-  return iconCache[cat] = cv;
+  const icons = occ ? OCC_ICONS : AMENITY_ICONS;
+  ctx.fillStyle = "#ffffff"; ctx.fill(new Path2D(icons[iconKey(cat, icons)]));
+  return iconCache[key] = cv;
 }
-const iconImg = (cat, size = 16) => `<img src="${iconCanvas(cat).toDataURL()}" width="${size}" height="${size}" alt="" style="flex:none">`;
+const iconImg = (cat, size = 16, kind = "amenity") => `<img src="${iconCanvas(cat, kind).toDataURL()}" width="${size}" height="${size}" alt="" style="flex:none">`;
 
 document.getElementById("amenity-legend-icon").outerHTML = iconImg("information");
+document.getElementById("occupant-legend-icon").outerHTML = iconImg("unspecified", 16, "occupant");
 
 // ---------- State ----------
 const S = {
@@ -357,8 +398,7 @@ function applyMapTheme() {
   set("fixture-fill", "fill-color", matchColor(P.fixture, P.fixture._)); set("fixture-fill", "fill-opacity", P.fixtureOpacity);
   set("kiosk-fill", "fill-color", P.kiosk);
   set("detail-line", "line-color", P.detail); set("opening-line", "line-color", P.opening);
-  set("occupant-pt", "circle-stroke-color", P.ptStroke);
-  for (const id of ["occupant-lbl", "amenity-lbl"]) { set(id, "text-color", P.text); set(id, "text-halo-color", P.halo); }
+  for (const l of LAYERS) if (l.group.endsWith("-lbl")) { set(l.id, "text-color", P.text); set(l.id, "text-halo-color", P.halo); }
 }
 
 // ---------- Map ----------
@@ -474,7 +514,8 @@ function build() {
     S.featById[o.id] = o;
     S.points.occupant.push({ type: "Feature", geometry: an.geometry, properties: {
       _fid: o.id, _type: "occupant", _ok: "|" + ord + "|", _ords: [ord], category: p.category || "unspecified",
-      _name: nm(p.name) || "Occupant", _color: groupColor(OCC_GROUPS, p.category) } });
+      _name: nm(p.name) || "Occupant", _color: groupColor(OCC_GROUPS, p.category),
+      _icon: "oc-" + (p.category || "unspecified") } });
   }
   const v = feats("venue")[0];
   $("venue-name").textContent = nm(v?.properties.name) || "IMDF Viewer";
@@ -492,16 +533,51 @@ function matchColor(table, fallback) {
 const LAYERS = [];
 function addLayer(def, group) { map.addLayer(def); LAYERS.push({ id: def.id, group }); }
 
+// Zoombanden: onder zoom 18 worden gelijke punten geclusterd (cz = zoom waarop de afstand berekend wordt)
+const CLUSTER_BANDS = [{ max: 15, cz: 14 }, { min: 15, max: 16, cz: 15 }, { min: 16, max: 17, cz: 16 }, { min: 17, max: 18, cz: 17 }, { min: 18 }];
+const layersOf = (t, kind) => LAYERS.filter(l => l.id.startsWith(`${t}-${kind}-`)).map(l => l.id);
+function clusterPoints(points, z) {
+  // Wereldpixels (512px-tegels) op zoom z
+  const W = 512 * 2 ** z;
+  const px = ([lng, lat]) => { const s = Math.sin(lat * Math.PI / 180);
+    return [(lng + 180) / 360 * W, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * W]; };
+  const iconPx = 26 * (z <= 14 ? 0.4 : z >= 17 ? 0.75 : 0.4 + (z - 14) / 3 * 0.35);
+  const R = Math.max(18, iconPx * 2.2), R2 = R * R;
+  const groups = new Map();   // zelfde categorie én zelfde verdieping(en)
+  for (const f of points) { const k = f.properties.category + f.properties._ok; (groups.get(k) || groups.set(k, []).get(k)).push(f); }
+  const out = [];
+  for (const g of groups.values()) {
+    const P = g.map(f => px(f.geometry.coordinates)), used = new Uint8Array(g.length);
+    for (let i = 0; i < g.length; i++) {
+      if (used[i]) continue;
+      used[i] = 1; const members = [i];
+      // Groei het cluster vanuit alle leden (zodat een rij balies één cluster wordt)
+      for (let m = 0; m < members.length; m++) for (let j = 0; j < g.length; j++) {
+        if (used[j]) continue;
+        const dx = P[members[m]][0] - P[j][0], dy = P[members[m]][1] - P[j][1];
+        if (dx * dx + dy * dy <= R2) { used[j] = 1; members.push(j); }
+      }
+      const cs = members.map(k => g[k].geometry.coordinates);
+      const lng = cs.reduce((a, c) => a + c[0], 0) / cs.length, lat = cs.reduce((a, c) => a + c[1], 0) / cs.length;
+      const bbox = [Math.min(...cs.map(c => c[0])), Math.min(...cs.map(c => c[1])), Math.max(...cs.map(c => c[0])), Math.max(...cs.map(c => c[1]))];
+      out.push({ type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] },
+        properties: { ...g[i].properties, _count: members.length, _bbox: JSON.stringify(bbox) } });
+    }
+  }
+  return out;
+}
+
 function render() {
   for (const l of LAYERS.splice(0)) if (map.getLayer(l.id)) map.removeLayer(l.id);
-  for (const s of ["venue", "footprint", "level", "unit", "section", "fixture", "detail", "opening", "kiosk", "amenity", "occupant"])
-    if (map.getSource(s)) map.removeSource(s);
+  for (const s of Object.keys(map.getStyle().sources)) if (s !== "basemap") map.removeSource(s);
 
   const src = (id, features) => map.addSource(id, { type: "geojson", data: fc(features.filter(f => f.geometry)) });
   src("venue", feats("venue")); src("footprint", feats("footprint")); src("level", feats("level"));
   src("unit", feats("unit")); src("section", feats("section")); src("fixture", feats("fixture"));
   src("detail", feats("detail")); src("opening", feats("opening")); src("kiosk", feats("kiosk"));
-  src("amenity", S.points.amenity); src("occupant", S.points.occupant);
+  // Punten per zoomband: uitgezoomd worden gelijke punten (zelfde categorie + verdieping) samengevoegd
+  for (const t of ["amenity", "occupant"]) CLUSTER_BANDS.forEach((b, i) =>
+    src(`${t}-${i}`, b.cz == null ? S.points[t].map(f => ({ ...f, properties: { ...f.properties, _count: 1 } })) : clusterPoints(S.points[t], b.cz)));
 
   // Kleuren zijn neutraal-placeholders; applyMapTheme() zet direct daarna het actieve palet
   addLayer({ id: "venue-fill", type: "fill", source: "venue", paint: { "fill-opacity": 0.4 } }, "base");
@@ -519,27 +595,33 @@ function render() {
   addLayer({ id: "detail-line", type: "line", source: "detail", minzoom: 16, paint: { "line-width": 0.6 } }, "detail");
   addLayer({ id: "opening-line", type: "line", source: "opening", paint: { "line-width": 3 } }, "unit");
 
-  const circle = (id, source, radius, group, sq) => addLayer({ id, type: "circle", source, paint: {
-    "circle-color": ["get", "_color"],
-    "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, radius * 0.45, 18, radius, 21, radius * 1.4],
-    "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, 0.6, 18, 1.8] } }, group);
-  for (const p of S.points.amenity) {
+  for (const t of ["amenity", "occupant"]) for (const p of S.points[t]) {
     const id = p.properties._icon;
     if (!map.hasImage(id)) {
-      const cv = iconCanvas(p.properties.category);
+      const cv = iconCanvas(p.properties.category, t);
       map.addImage(id, cv.getContext("2d").getImageData(0, 0, cv.width, cv.height), { pixelRatio: ICON_RATIO });
     }
   }
-  circle("occupant-pt", "occupant", 7, "occupant");
-  addLayer({ id: "amenity-pt", type: "symbol", source: "amenity", layout: {
+  const band = b => ({ ...(b.min != null && { minzoom: b.min }), ...(b.max != null && { maxzoom: b.max }) });
+  for (const t of ["occupant", "amenity"]) CLUSTER_BANDS.forEach((b, i) => addLayer({ id: `${t}-pt-${i}`, type: "symbol", source: `${t}-${i}`, ...band(b),
+    layout: {
       "icon-image": ["get", "_icon"], "icon-allow-overlap": true, "icon-ignore-placement": true,
-      "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 17, 0.75, 19, 1, 21, 1.25] } }, "amenity");
-  const label = (id, source, minzoom, group, size, offset = 1.1) => addLayer({ id, type: "symbol", source, minzoom, layout: {
-      "text-field": ["get", "_name"], "text-font": ["Noto Sans Regular"], "text-size": size, "text-offset": [0, offset],
-      "text-anchor": "top", "text-max-width": 9, "text-optional": true },
-    paint: { "text-halo-width": 1.4 } }, group);
-  label("occupant-lbl", "occupant", 17, "occupant-lbl", 12);
-  label("amenity-lbl", "amenity", 19.5, "amenity-lbl", 11, 1.5);
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 17, 0.75, 19, 1, 21, 1.25],
+      // Aantal-badge rechtsboven bij een cluster
+      "text-field": ["case", [">", ["get", "_count"], 1], ["to-string", ["get", "_count"]], ""],
+      "text-font": ["Noto Sans Bold"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 8, 17, 10],
+      "text-offset": [1.05, -0.95], "text-allow-overlap": true, "text-ignore-placement": true },
+    paint: { "text-color": "#ffffff", "text-halo-color": ["get", "_color"], "text-halo-width": 2.5 } }, t));
+  // Namen alleen bij losse punten
+  const LABEL = { occupant: { minzoom: 17, size: 12 }, amenity: { minzoom: 19.5, size: 11 } };
+  for (const t of ["occupant", "amenity"]) CLUSTER_BANDS.forEach((b, i) => {
+    if (b.max != null && b.max <= LABEL[t].minzoom) return;
+    addLayer({ id: `${t}-lbl-${i}`, type: "symbol", source: `${t}-${i}`,
+      ...band({ min: Math.max(b.min ?? 0, LABEL[t].minzoom), max: b.max }), layout: {
+        "text-field": ["get", "_name"], "text-font": ["Noto Sans Regular"], "text-size": LABEL[t].size, "text-offset": [0, 1.5],
+        "text-anchor": "top", "text-max-width": 9, "text-optional": true },
+      paint: { "text-halo-width": 1.4 } }, t + "-lbl");
+  });
   applyMapTheme();
 
   renderLevelButtons();
@@ -583,16 +665,17 @@ function pointFilter(type) {
   if (hidden.length) f.push(["!", ["in", ["get", "category"], ["literal", hidden]]]);
   return f;
 }
+function applyPointFilter(t) {
+  for (const id of layersOf(t, "pt")) map.setFilter(id, pointFilter(t));
+  for (const id of layersOf(t, "lbl")) map.setFilter(id, ["all", pointFilter(t), ["==", ["get", "_count"], 1]]);
+}
 function setLevel(o, closePopups = true) {
   S.ord = o;
   for (const id of ["level-fill", "level-line", "unit-fill", "section-fill", "section-line", "fixture-fill", "fixture-line", "kiosk-fill", "detail-line", "opening-line"])
     map.setFilter(id, levelFilter());
   map.setFilter("unit-line", levelFilter(["!=", ["get", "category"], "opentobelow"]));
   map.setFilter("unit-otb", levelFilter(["==", ["get", "category"], "opentobelow"]));
-  for (const t of ["amenity", "occupant"]) {
-    map.setFilter(t + "-pt", pointFilter(t));
-    map.setFilter(t + "-lbl", pointFilter(t));
-  }
+  for (const t of ["amenity", "occupant"]) applyPointFilter(t);
   document.querySelectorAll("#levels button").forEach(b => b.classList.toggle("on", Number(b.dataset.ord) === o));
   const lvls = S.levelsByOrd.get(o) || [];
   const names = [...new Set(lvls.map(l => nm(l.properties.name)).filter(Boolean))];
@@ -601,11 +684,11 @@ function setLevel(o, closePopups = true) {
   $("levelname").classList.remove("hidden");
   if (closePopups && popup) popup.remove();
   renderCategories();
+  saveView();
 }
 
 function renderCategories() {
   for (const type of ["occupant", "amenity"]) {
-    const groups = type === "occupant" ? OCC_GROUPS : AMENITY_GROUPS;
     const counts = {};
     for (const p of S.points[type]) if (p.properties._ords.includes(S.ord)) counts[p.properties.category] = (counts[p.properties.category] || 0) + 1;
     const box = $("cats-" + type); box.innerHTML = "";
@@ -613,11 +696,11 @@ function renderCategories() {
     if (!cats.length) { box.innerHTML = '<div style="color:var(--muted);padding:3px 0">Geen op deze verdieping</div>'; continue; }
     for (const c of cats) {
       const lab = document.createElement("label"); lab.className = "chk";
-      const mark = type === "amenity" ? iconImg(c) : `<span class="dot" style="background:${groupColor(groups, c)}"></span>`;
+      const mark = iconImg(c, 16, type);
       lab.innerHTML = `<input type="checkbox" ${S.hiddenCats[type].has(c) ? "" : "checked"}>${mark}${esc(prettyCat(c))}<span class="cnt">${counts[c]}</span>`;
       lab.querySelector("input").onchange = e => {
         e.target.checked ? S.hiddenCats[type].delete(c) : S.hiddenCats[type].add(c);
-        map.setFilter(type + "-pt", pointFilter(type)); map.setFilter(type + "-lbl", pointFilter(type));
+        applyPointFilter(type);
       };
       box.appendChild(lab);
     }
@@ -679,19 +762,26 @@ function showPopup(f, lngLat) {
   if (popup) popup.remove();
   popup = new maplibregl.Popup({ maxWidth: "320px", offset: 10 }).setLngLat(lngLat).setHTML(popupHtml(f)).addTo(map);
 }
-const CLICKABLE = ["occupant-pt", "amenity-pt", "occupant-lbl", "fixture-fill", "section-fill", "unit-fill"];
+const clickable = () => [...layersOf("occupant", "pt"), ...layersOf("amenity", "pt"), ...layersOf("occupant", "lbl"), "fixture-fill", "section-fill", "unit-fill"];
 map.on("click", e => {
   if (!S.loaded) return;
-  const hits = map.queryRenderedFeatures(e.point, { layers: CLICKABLE.filter(id => map.getLayer(id)) });
+  const hits = map.queryRenderedFeatures(e.point, { layers: clickable().filter(id => map.getLayer(id)) });
   if (!hits.length) return;
-  const h = hits[0], f = S.featById[h.properties._fid];
+  const h = hits[0];
+  if (h.properties._count > 1) {   // cluster: inzoomen tot de losse punten zichtbaar zijn
+    const [x1, y1, x2, y2] = JSON.parse(h.properties._bbox);
+    const cam = map.cameraForBounds([[x1, y1], [x2, y2]], { padding: 80, maxZoom: 21 });
+    map.easeTo({ center: cam.center, zoom: Math.max(cam.zoom, 18.2) });
+    return;
+  }
+  const f = S.featById[h.properties._fid];
   if (!f) return;
   const at = h.geometry.type === "Point" ? h.geometry.coordinates : e.lngLat;
   showPopup(f, at);
 });
 map.on("mousemove", e => {
   if (!S.loaded) return;
-  const hits = map.queryRenderedFeatures(e.point, { layers: ["occupant-pt", "amenity-pt"].filter(id => map.getLayer(id)) });
+  const hits = map.queryRenderedFeatures(e.point, { layers: [...layersOf("occupant", "pt"), ...layersOf("amenity", "pt")].filter(id => map.getLayer(id)) });
   map.getCanvas().style.cursor = hits.length ? "pointer" : "";
 });
 
@@ -705,7 +795,7 @@ $("search").oninput = () => {
   if (!all.length) { box.innerHTML = '<div style="cursor:default;color:var(--muted)">Niets gevonden</div>'; return; }
   for (const p of all) {
     const d = document.createElement("div"), pr = p.properties;
-    d.innerHTML = `${pr._type === "amenity" ? iconImg(pr.category) : `<span class="dot" style="background:${pr._color}"></span>`}${esc(pr._name)}<small>${esc(nm((S.levelsByOrd.get(pr._ords[0]) || [])[0]?.properties.short_name) || pr._ords[0])}</small>`;
+    d.innerHTML = `${iconImg(pr.category, 16, pr._type)}${esc(pr._name)}<small>${esc(nm((S.levelsByOrd.get(pr._ords[0]) || [])[0]?.properties.short_name) || pr._ords[0])}</small>`;
     d.onclick = () => {
       setLevel(pr._ords[0]);
       map.flyTo({ center: p.geometry.coordinates, zoom: Math.max(map.getZoom(), 19) });
@@ -719,10 +809,55 @@ $("search").oninput = () => {
 const pick = () => $("file").click();
 $("pick-btn").onclick = pick;
 $("open-btn").onclick = pick;
-async function handle(files) {
+$("close-btn").onclick = forget;
+// ---------- Onthouden tussen verversingen (IndexedDB, blijft lokaal in deze browser) ----------
+const idb = () => new Promise((res, rej) => {
+  const r = indexedDB.open("imdf-viewer", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("kv");
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+async function idbDo(mode, fn) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("kv", mode), req = fn(tx.objectStore("kv"));
+    tx.oncomplete = () => { db.close(); res(req?.result); }; tx.onerror = () => { db.close(); rej(tx.error); };
+  });
+}
+const store = {
+  get: k => idbDo("readonly", s => s.get(k)),
+  set: (k, v) => idbDo("readwrite", s => s.put(v, k)),
+  del: k => idbDo("readwrite", s => s.delete(k)),
+};
+// Kaartpositie en verdieping bewaren
+function saveView() {
+  if (!S.loaded) return;
+  const c = map.getCenter();
+  try { localStorage.setItem("imdf-view", JSON.stringify({ c: [c.lng, c.lat], z: map.getZoom(), b: map.getBearing(), p: map.getPitch(), o: S.ord })); } catch {}
+}
+map.on("moveend", saveView);
+function restoreView() {
+  let v; try { v = JSON.parse(localStorage.getItem("imdf-view")); } catch {}
+  if (!v) return;
+  if (S.ordinals.includes(v.o)) setLevel(v.o);
+  map.jumpTo({ center: v.c, zoom: v.z, bearing: v.b, pitch: v.p });
+}
+async function forget() {
+  try { await store.del("files"); localStorage.removeItem("imdf-view"); } catch {}
+  location.href = location.pathname;
+}
+
+async function handle(fileList) {
+  const files = [...fileList];   // direct kopiëren: het file-input wordt meteen daarna leeggemaakt
   if (!files.length) return;
   $("drop").classList.remove("hidden");
-  try { await loadFiles([...files]); }
+  try {
+    await loadFiles(files);
+    localStorage.removeItem("imdf-view");
+    saveView();
+    $("close-btn").classList.remove("hidden");
+    try { await store.set("files", files); }
+    catch (e) { console.warn("Kon bestand niet onthouden:", e); }
+  }
   catch (e) { console.error(e); setStatus("Fout: " + e.message); }
 }
 $("file").onchange = e => { handle(e.target.files); e.target.value = ""; };
@@ -736,7 +871,18 @@ $("drop").addEventListener("click", e => { if (e.target === $("drop") && S.loade
 // Optional: ?src=pad/naar/imdf.zip (werkt als de viewer via een webserver draait)
 (async () => {
   const src = new URLSearchParams(location.search).get("src");
-  if (!src) return;
+  if (!src) {
+    // Geen ?src: het laatst geopende bestand herstellen
+    let files; try { files = await store.get("files"); } catch {}
+    if (!files?.length) return;
+    try {
+      setStatus("Vorig bestand herstellen…");
+      await loadFiles(files);
+      restoreView();
+      $("close-btn").classList.remove("hidden");
+    } catch (e) { console.error(e); setStatus("Kon vorig bestand niet herstellen: " + e.message); }
+    return;
+  }
   try {
     setStatus("Laden: " + src + "…");
     const res = await fetch(src); if (!res.ok) throw new Error(res.status + " " + res.statusText);
