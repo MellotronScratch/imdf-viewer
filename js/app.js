@@ -84,7 +84,8 @@ window.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth =
 window.addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; $("drop").classList.remove("over"); handle(e.dataTransfer.files); });
 $("drop").addEventListener("click", e => { if (e.target === $("drop") && S.loaded) $("drop").classList.add("hidden"); });
 
-// Optional: ?src=pad/naar/imdf.zip (werkt als de viewer via een webserver draait)
+// Optioneel: ?src=pad/naar/imdf.zip — alleen bestanden van dezelfde server (geen willekeurige externe adressen,
+// zodat een link naar deze viewer geen data van derden onder dit domein kan tonen)
 (async () => {
   const src = new URLSearchParams(location.search).get("src");
   if (!src) {
@@ -100,8 +101,10 @@ $("drop").addEventListener("click", e => { if (e.target === $("drop") && S.loade
     return;
   }
   try {
+    const url = new URL(src, location.href);
+    if (url.origin !== location.origin) throw new Error("alleen bestanden van deze server zijn toegestaan");
     setStatus("Laden: " + src + "…");
-    const res = await fetch(src); if (!res.ok) throw new Error(res.status + " " + res.statusText);
+    const res = await fetch(url, { credentials: "same-origin" }); if (!res.ok) throw new Error(res.status + " " + res.statusText);
     await ingest(await readZip(await res.blob()), src.split("/").pop());
   } catch (e) { console.error(e); setStatus("Kon " + src + " niet laden: " + e.message); }
 })();

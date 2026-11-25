@@ -28,13 +28,25 @@ De validatie volgt de officiële regellijst [`imdf-validations-1.0.3.csv`](https
 - Overlapregels vergelijken alleen features op hetzelfde level, of bij levels op dezelfde ordinal.
 - Niet gecontroleerd: `AddressMustHaveProvinceCode`, want daarvoor is een ISO 3166-2-lijst nodig. De regeltabel toont per regel of en hoe hij gecontroleerd is.
 
+## Veiligheid
+
+Een IMDF-archief is data, geen code: de viewer voert niets uit wat in een bestand staat.
+
+- **Tekst blijft tekst.** Alle waarden uit de data worden ge-escaped voordat ze in de pagina komen, ook namen, ID's, attribuutnamen en taalcodes.
+- **Links** worden alleen klikbaar voor `http(s)`. Een website-veld met `javascript:` of `data:` wordt als tekst getoond.
+- **Content Security Policy:** alleen scripts van deze site en de twee vaste CDN's (met SRI). Geen inline scripts, geen `eval`. Mocht er ooit iets door de escaping glippen, dan weigert de browser het.
+- **CSV-export:** waarden die met `=`, `+`, `-` of `@` beginnen krijgen een `'` ervoor, zodat Excel ze niet als formule uitvoert.
+- **Zip-bommen:** archieven die uitgepakt groter zijn dan 512 MB per bestand of 1 GB in totaal worden geweigerd.
+- **`?src=`** laadt alleen bestanden van dezelfde server.
+- Categorieën of ID's als `__proto__` worden als gewone waarden behandeld.
+
 ## Lokaal draaien
 
 ```sh
 node serve.js            # http://localhost:8080
 ```
 
-Een webserver is nodig voor de Web Worker. Met `?src=pad/naar/bestand.zip` laad je direct een bestand dat door de server wordt aangeboden.
+Een webserver is nodig voor de Web Worker. Met `?src=pad/naar/bestand.zip` laad je direct een bestand dat door dezelfde server wordt aangeboden.
 
 ## Structuur
 
@@ -42,6 +54,7 @@ Een webserver is nodig voor de Web Worker. Met `?src=pad/naar/bestand.zip` laad 
 index.html              opmaak van de pagina
 css/app.css             vormgeving (licht/donker via :root[data-theme])
 js/                     viewer, als gewone scripts in vaste volgorde (zie index.html)
+  theme-early.js        thema zetten vóór de eerste weergave (in <head>)
   palette.js            kleuren per thema en categoriegroepen
   icons.js              pictogrammen (Material Design Icons) en canvas-tekenen
   state.js              gedeelde toestand en hulpfuncties

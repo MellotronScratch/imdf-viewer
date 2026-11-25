@@ -10,7 +10,7 @@ function renderInfo() {
   const date = t => { const dt = new Date(t); return isNaN(dt) ? esc(t) : esc(dt.toLocaleString("nl-NL", { dateStyle: "long", timeStyle: "short" })); };
   const val = x => x == null ? null : typeof x === "object" ? esc(nm(x) ?? JSON.stringify(x)) : esc(x);
   // Per taal tellen hoeveel features een naam in die taal hebben
-  const langs = new Set(), langCount = {}, NAMED = ["venue", "building", "level", "unit", "section", "fixture", "kiosk", "occupant", "amenity", "opening"];
+  const langs = new Set(), langCount = Object.create(null), NAMED = ["venue", "building", "level", "unit", "section", "fixture", "kiosk", "occupant", "amenity", "opening"];
   let named = 0;
   for (const t of NAMED) for (const f of feats(t)) {
     const n = f.properties.name; if (!n || typeof n !== "object") continue;
@@ -27,7 +27,7 @@ function renderInfo() {
   html += '<div class="sub">Venue</div>' + table([
     ["Categorie", val(prettyCat(v.category))],
     ["Adres", adr ? esc([adr.address, [adr.postal_code, adr.locality].filter(Boolean).join(" "), adr.country].filter(Boolean).join(", ")) : null],
-    ["Telefoon", val(v.phone)], ["Website", v.website ? `<a href="${esc(v.website)}" target="_blank" rel="noopener">${esc(v.website.replace(/^https?:\/\//, ""))}</a>` : null],
+    ["Telefoon", val(v.phone)], ["Website", v.website ? extLink(v.website, String(v.website).replace(/^https?:\/\//, "")) : null],
     ["Namen in", langs.size ? [...langs].sort().map(l => `<button class="tag lang-tag${l === S.lang ? " on" : ""}" data-lang="${esc(l)}" title="${langCount[l].toLocaleString("nl-NL")} van ${named.toLocaleString("nl-NL")} namen in ${esc(l)} · klik om deze taal te tonen">${esc(l)}<span class="lcnt">${langCount[l].toLocaleString("nl-NL")}</span></button>`).join("") : null]]);
   const types = ["building", "footprint", "level", "unit", "opening", "section", "fixture", "detail", "kiosk", "geofence", "anchor", "occupant", "amenity", "relationship"];
   html += '<div class="sub">Inhoud</div><div class="counts">' + types.filter(t => feats(t).length)

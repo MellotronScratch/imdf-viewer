@@ -13,7 +13,7 @@ function rows(pairs) {
 }
 function popupHtml(f) {
   const p = f.properties, t = f.feature_type;
-  const link = u => u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>` : null;
+  const link = u => u ? extLink(u) : null;
   let unit = null, extra = [];
   if (t === "occupant") {
     const an = S.anchorById[p.anchor_id]; unit = an && S.unitById[an.properties.unit_id];

@@ -2,20 +2,23 @@
 // Inlezen van IMDF (zip of losse GeoJSON) en het opbouwen van het model.
 
 // ---------- Loading ----------
+// Grenzen tegen zip-bommen: een klein archief dat uitpakt tot gigabytes zou het tabblad laten vastlopen
+const ZIP_MAX_FILE = 512 * 2 ** 20, ZIP_MAX_TOTAL = 1024 * 2 ** 20;   // 512 MB per bestand, 1 GB totaal (uitgepakt)
 async function readZip(blob) {
   const zip = await JSZip.loadAsync(blob);
-  const out = {};
-  for (const [path, entry] of Object.entries(zip.files)) {
-    if (entry.dir || path.startsWith("__MACOSX")) continue;
-    const base = path.split("/").pop();
-    if (!/\.(geojson|json)$/i.test(base)) continue;
-    out[base.toLowerCase()] = await entry.async("string");
-  }
+  const out = Object.create(null);
+  const entries = Object.entries(zip.files).filter(([path, e]) => !e.dir && !path.startsWith("__MACOSX") && /\.(geojson|json)$/i.test(path.split("/").pop()));
+  const size = e => e._data?.uncompressedSize ?? 0;   // uit de centrale directory van de zip, vóór het uitpakken
+  const total = entries.reduce((a, [, e]) => a + size(e), 0);
+  const big = entries.find(([, e]) => size(e) > ZIP_MAX_FILE);
+  if (big) throw new Error(`${big[0]} is uitgepakt ${Math.round(size(big[1]) / 2 ** 20)} MB (maximaal ${ZIP_MAX_FILE / 2 ** 20} MB per bestand).`);
+  if (total > ZIP_MAX_TOTAL) throw new Error(`Archief is uitgepakt ${Math.round(total / 2 ** 20)} MB (maximaal ${ZIP_MAX_TOTAL / 2 ** 20} MB).`);
+  for (const [path, entry] of entries) out[path.split("/").pop().toLowerCase()] = await entry.async("string");
   return out;
 }
 async function loadFiles(fileList) {
   setStatus("Bestanden lezen…");
-  let raw = {};
+  let raw = Object.create(null);
   for (const f of fileList) {
     if (/\.zip$/i.test(f.name)) Object.assign(raw, await readZip(f));
     else raw[f.name.toLowerCase()] = await f.text();
@@ -53,7 +56,9 @@ async function ingest(raw, label) {
 // ---------- Build model ----------
 function feats(t) { return S.data[t]?.features || []; }
 function build() {
-  S.levelById = {}; S.unitById = {}; S.anchorById = {}; S.featById = {}; S.levelsByOrd = new Map();
+  // Opzoektabellen zonder prototype: id's en categorieën komen uit de data, ook "__proto__" moet een gewone sleutel zijn
+  const dict = () => Object.create(null);
+  S.levelById = dict(); S.unitById = dict(); S.anchorById = dict(); S.featById = dict(); S.levelsByOrd = new Map();
   for (const l of feats("level")) {
     S.levelById[l.id] = l; S.featById[l.id] = l;
     const o = l.properties.ordinal;

@@ -199,7 +199,7 @@ function setLevel(o, closePopups = true) {
 
 function renderCategories() {
   for (const type of ["occupant", "amenity"]) {
-    const counts = {};
+    const counts = Object.create(null);   // categorie komt uit de data (ook "__proto__" is dan een gewone sleutel)
     for (const p of S.points[type]) if (p.properties._ords.includes(S.ord)) counts[p.properties.category] = (counts[p.properties.category] || 0) + 1;
     const box = $("cats-" + type); box.innerHTML = "";
     const cats = Object.keys(counts).sort();

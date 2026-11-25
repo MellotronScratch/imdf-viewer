@@ -67,7 +67,7 @@ function cellHtml(v) {
   if (typeof v === "string") {
     const ref = refLabel(v);
     if (ref) return `<span class="chip ref" data-ref="${esc(v)}" title="${esc(S.featById[v].feature_type + " · " + v)}">${esc(ref)}</span>`;
-    if (/^https?:\/\//.test(v)) return `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v.replace(/^https?:\/\//, ""))}</a>`;
+    if (/^https?:\/\//.test(v)) return extLink(v, v.replace(/^https?:\/\//, ""));
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) { const d = new Date(v); if (!isNaN(d)) return `<span title="${esc(v)}">${esc(d.toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" }))}</span>`; }
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return `<span class="mono">${esc(v)}</span>`;
     return esc(v);
@@ -175,7 +175,7 @@ function openTable(type, opts = {}) {
     return Math.max(70, Math.min(c === "melding" || c === "definitie" || c === "toelichting" ? 520 : 320, m * 7 + 26));
   });
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("imdf-colw") || "{}")[type] || {}; } catch {}
-  T.widths = T.cols.map((c, i) => saved[c] || T.autoW[i]);
+  T.widths = T.cols.map((c, i) => (Object.hasOwn(saved, c) && Number.isFinite(saved[c]) ? saved[c] : 0) || T.autoW[i]);
   $("tbl-title").textContent = opts.title || type;
   $("tbl-q").value = "";
   $("tbl-level").parentElement.classList.toggle("hidden", !T.rows.some(f => ordsOf(f)));
@@ -266,6 +266,26 @@ $("tbl-q").oninput = debounce(() => applyTableFilter());
 $("tbl-level").onchange = () => applyTableFilter();
 $("tbl-close").onclick = () => { deselect(); $("tbl").classList.add("hidden"); map.resize(); };
 $("tbl-zoom").onclick = () => T.sel && zoomTo(T.sel);
+// CSV-export van de zichtbare (gefilterde, gesorteerde) regels.
+// Puntkomma als scheidingsteken (Nederlandse Excel), UTF-8 met BOM. Tekst die met = + - @ begint krijgt een '
+// ervoor, zodat Excel/LibreOffice hem niet als formule uitvoert (CSV-injectie).
+function csvValue(c, v) {
+  if (v == null) return "";
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  let s = typeof v === "string" ? v : isLangObj(v) ? nm(v) : Array.isArray(v) && v.every(x => x == null || typeof x !== "object") ? v.join(", ") : JSON.stringify(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+$("tbl-csv").onclick = () => {
+  if (!T.view?.length) return;
+  const cols = T.cols, lines = [cols.map(c => csvValue(c, c)).join(";")];
+  for (const f of T.view) lines.push(cols.map(c => csvValue(c, rowVal(f, c))).join(";"));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = (T.opts.title || T.type).replace(/[^\w.-]+/g, "_").replace(/^_|_$/g, "") + ".csv";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
 $("tbl-desel").onclick = () => deselect();
 function deselect() {
   if (!T.sel) return;
