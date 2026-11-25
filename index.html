@@ -34,16 +34,19 @@
   body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; overflow: hidden; -webkit-font-smoothing: antialiased; }
   body, #side, .btn, #levels, #levelname, input { transition: background-color .2s, color .2s, border-color .2s; }
   #side { width: 320px; flex: none; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; z-index: 2; }
-  #side header { padding: 16px 16px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: flex-start; }
-  #side header .titles { flex: 1; min-width: 0; }
-  #side h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Titel over de volle breedte (mag afbreken); taal- en themaknoppen in een eigen rij eronder */
+  #side header { padding: 16px 16px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  #side header .titles { min-width: 0; }
+  #side header .controls { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+  #side h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: -.01em; line-height: 1.25; overflow-wrap: anywhere; }
+  #venue-sub { overflow-wrap: anywhere; }
   #theme { display: flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 2px; flex: none; }
   #theme button { border: 0; background: transparent; color: var(--muted); width: 28px; height: 26px; border-radius: 7px; cursor: pointer; display: grid; place-items: center; padding: 0; }
   #theme button:hover { color: var(--text); }
   #theme button.on { background: var(--panel); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
   #theme svg { width: 16px; height: 16px; fill: currentColor; }
   input[type=checkbox] { accent-color: var(--accent); }
-  #lang { flex: none; height: 32px; padding: 0 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; cursor: pointer; }
+  #lang { flex: none; margin-right: auto; height: 32px; padding: 0 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; cursor: pointer; }
   select { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
   .maplibregl-ctrl-group { background: var(--panel) !important; box-shadow: var(--shadow) !important; border-radius: 10px !important; overflow: hidden; }
   .maplibregl-ctrl-group button + button { border-top-color: var(--line) !important; }
@@ -103,6 +106,9 @@
   #info-body .counts { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 1px 10px; font-size: 12px; }
   #info-body .counts span:nth-child(odd) { color: var(--muted); }
   #info-body .counts span:nth-child(even) { font-variant-numeric: tabular-nums; text-align: right; }
+  button.tag { border: 1px solid transparent; font: inherit; font-size: 12px; cursor: pointer; }
+  button.tag:hover { border-color: var(--accent); }
+  button.tag.on { background: var(--accent); color: var(--accent-text); }
   .tag { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 0 6px; font-size: 12px; margin: 1px 2px 1px 0; }
   .maplibregl-popup-content { background: var(--panel); color: var(--text); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); font: 13px/1.4 system-ui, sans-serif; max-width: 300px; }
   .maplibregl-popup-tip { border-top-color: var(--panel) !important; border-bottom-color: var(--panel) !important; }
@@ -127,11 +133,13 @@
       <h1 id="venue-name">IMDF Viewer</h1>
       <div id="venue-sub">Open een IMDF-archief (.zip) of de losse .geojson-bestanden</div>
     </div>
+    <div class="controls">
     <select id="lang" class="hidden" title="Taal van namen" aria-label="Taal van namen"></select>
     <div id="theme" role="group" aria-label="Thema">
       <button data-pref="auto" title="Automatisch (systeem)" aria-label="Automatisch"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2v16a8 8 0 0 1 0-16Z"/></svg></button>
       <button data-pref="light" title="Licht" aria-label="Licht"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42zm12.02 12.02 1.42-1.42 2.12 2.12-1.42 1.42zM4.22 18.36l2.12-2.12 1.42 1.42-2.12 2.12zM16.24 6.34l2.12-2.12 1.42 1.42-2.12 2.12z"/></svg></button>
       <button data-pref="dark" title="Donker" aria-label="Donker"><svg viewBox="0 0 24 24"><path d="M21 14.5A9 9 0 0 1 9.5 3a9 9 0 1 0 11.5 11.5Z"/></svg></button>
+    </div>
     </div>
   </header>
   <div class="scroll">
@@ -153,10 +161,15 @@
     <label class="chk"><input type="checkbox" data-layer="occupant" checked><span id="occupant-legend-icon"></span>Occupants<span class="cnt" id="cnt-occupant"></span></label>
     <label class="chk"><input type="checkbox" data-layer="amenity" checked><span id="amenity-legend-icon"></span>Amenities<span class="cnt" id="cnt-amenity"></span></label>
     <label class="chk"><input type="checkbox" data-layer="labels" checked>Namen tonen</label>
-    <label class="chk"><input type="checkbox" data-layer="unit" checked>Units</label>
-    <label class="chk"><input type="checkbox" data-layer="section" checked>Sections</label>
-    <label class="chk"><input type="checkbox" data-layer="fixture" checked>Fixtures</label>
-    <label class="chk"><input type="checkbox" data-layer="detail" checked>Details</label>
+    <label class="chk" data-feat="venue"><input type="checkbox" data-layer="venue" checked>Venue<span class="cnt" data-cnt="venue"></span></label>
+    <label class="chk" data-feat="footprint"><input type="checkbox" data-layer="footprint" checked>Footprints<span class="cnt" data-cnt="footprint"></span></label>
+    <label class="chk" data-feat="level"><input type="checkbox" data-layer="level" checked>Levels<span class="cnt" data-cnt="level"></span></label>
+    <label class="chk" data-feat="unit"><input type="checkbox" data-layer="unit" checked>Units<span class="cnt" data-cnt="unit"></span></label>
+    <label class="chk" data-feat="opening"><input type="checkbox" data-layer="opening" checked>Openings<span class="cnt" data-cnt="opening"></span></label>
+    <label class="chk" data-feat="section"><input type="checkbox" data-layer="section" checked>Sections<span class="cnt" data-cnt="section"></span></label>
+    <label class="chk" data-feat="fixture"><input type="checkbox" data-layer="fixture" checked>Fixtures<span class="cnt" data-cnt="fixture"></span></label>
+    <label class="chk" data-feat="kiosk"><input type="checkbox" data-layer="kiosk" checked>Kiosks<span class="cnt" data-cnt="kiosk"></span></label>
+    <label class="chk" data-feat="detail"><input type="checkbox" data-layer="detail" checked>Details<span class="cnt" data-cnt="detail"></span></label>
     <label class="chk"><input type="checkbox" data-layer="basemap" checked>Achtergrondkaart</label>
 
     <h2>Categorieën op deze verdieping</h2>
@@ -530,6 +543,7 @@ function applyMapTheme() {
   set("basemap", "raster-opacity", P.raster.opacity); set("basemap", "raster-saturation", P.raster.sat);
   set("basemap", "raster-brightness-min", P.raster.min); set("basemap", "raster-brightness-max", P.raster.max);
   set("venue-fill", "fill-color", P.venueFill); set("venue-line", "line-color", P.venueLine);
+  set("footprint-line", "line-color", P.levelLine);
   set("level-fill", "fill-color", P.levelFill); set("level-line", "line-color", P.levelLine);
   set("unit-fill", "fill-color", matchColor(P.unit, P.unit.unspecified)); set("unit-fill", "fill-opacity", P.unitOpacity);
   for (const id of ["unit-line", "unit-otb", "fixture-line"]) set(id, "line-color", P.line);
@@ -690,11 +704,12 @@ function renderInfo() {
     ["Categorie", val(prettyCat(v.category))],
     ["Adres", adr ? esc([adr.address, [adr.postal_code, adr.locality].filter(Boolean).join(" "), adr.country].filter(Boolean).join(", ")) : null],
     ["Telefoon", val(v.phone)], ["Website", v.website ? `<a href="${esc(v.website)}" target="_blank" rel="noopener">${esc(v.website.replace(/^https?:\/\//, ""))}</a>` : null],
-    ["Namen in", langs.size ? [...langs].sort().map(l => `<span class="tag">${esc(l)}</span>`).join("") : null]]);
+    ["Namen in", langs.size ? [...langs].sort().map(l => `<button class="tag lang-tag${l === S.lang ? " on" : ""}" data-lang="${esc(l)}" title="Namen in ${esc(l)} tonen">${esc(l)}</button>`).join("") : null]]);
   const types = ["building", "footprint", "level", "unit", "opening", "section", "fixture", "detail", "kiosk", "geofence", "anchor", "occupant", "amenity", "relationship"];
   html += '<div class="sub">Inhoud</div><div class="counts">' + types.filter(t => feats(t).length)
     .map(t => `<span>${t}</span><span>${feats(t).length.toLocaleString("nl-NL")}</span>`).join("") + "</div>";
   $("info-body").innerHTML = html;
+  $("info-body").querySelectorAll(".lang-tag").forEach(b => b.onclick = () => setLang(b.dataset.lang));
   $("info").classList.remove("hidden");
 }
 
@@ -795,8 +810,9 @@ function render() {
   for (const t of ["amenity", "occupant"]) CLUSTER_BANDS.forEach((b, i) => src(`${t}-${i}`, bandPoints(t, b)));
 
   // Kleuren zijn neutraal-placeholders; applyMapTheme() zet direct daarna het actieve palet
-  addLayer({ id: "venue-fill", type: "fill", source: "venue", paint: { "fill-opacity": 0.4 } }, "base");
-  addLayer({ id: "venue-line", type: "line", source: "venue", paint: { "line-width": 1.5, "line-dasharray": [3, 2], "line-opacity": 0.55 } }, "base");
+  addLayer({ id: "venue-fill", type: "fill", source: "venue", paint: { "fill-opacity": 0.4 } }, "venue");
+  addLayer({ id: "venue-line", type: "line", source: "venue", paint: { "line-width": 1.5, "line-dasharray": [3, 2], "line-opacity": 0.55 } }, "venue");
+  addLayer({ id: "footprint-line", type: "line", source: "footprint", paint: { "line-width": 1, "line-opacity": 0.6 } }, "footprint");
   addLayer({ id: "level-fill", type: "fill", source: "level", paint: { "fill-opacity": 0.97 } }, "level");
   addLayer({ id: "level-line", type: "line", source: "level", paint: { "line-width": 1.2 } }, "level");
   addLayer({ id: "unit-fill", type: "fill", source: "unit", paint: {} }, "unit");
@@ -812,9 +828,9 @@ function render() {
     "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 19, 1.4], "line-opacity": 0.8 } }, "section");
   addLayer({ id: "fixture-fill", type: "fill", source: "fixture", paint: {} }, "fixture");
   addLayer({ id: "fixture-line", type: "line", source: "fixture", paint: { "line-width": 0.4 } }, "fixture");
-  addLayer({ id: "kiosk-fill", type: "fill", source: "kiosk", paint: {} }, "fixture");
+  addLayer({ id: "kiosk-fill", type: "fill", source: "kiosk", paint: {} }, "kiosk");
   addLayer({ id: "detail-line", type: "line", source: "detail", minzoom: 16, paint: { "line-width": 0.6 } }, "detail");
-  addLayer({ id: "opening-line", type: "line", source: "opening", paint: { "line-width": 3 } }, "unit");
+  addLayer({ id: "opening-line", type: "line", source: "opening", paint: { "line-width": 3 } }, "opening");
 
   for (const t of ["amenity", "occupant"]) for (const p of S.points[t]) {
     const id = p.properties._icon;
@@ -847,6 +863,8 @@ function render() {
 
   renderLevelButtons();
   setLevel(S.ord, false);
+  document.querySelectorAll("[data-feat]").forEach(l => l.classList.toggle("hidden", !feats(l.dataset.feat).length));
+  document.querySelectorAll("[data-cnt]").forEach(c => c.textContent = feats(c.dataset.cnt).length.toLocaleString("nl-NL"));
   applyVisibility();
   fitVenue();
   $("cnt-occupant").textContent = S.points.occupant.length;
@@ -940,7 +958,13 @@ function applyVisibility() {
     set(l.id, v);
   }
 }
-document.querySelectorAll("[data-layer]").forEach(i => i.onchange = applyVisibility);
+try { const saved = JSON.parse(localStorage.getItem("imdf-layers") || "{}");
+  document.querySelectorAll("[data-layer]").forEach(i => { if (i.dataset.layer in saved) i.checked = saved[i.dataset.layer]; }); } catch {}
+document.querySelectorAll("[data-layer]").forEach(i => i.onchange = () => {
+  const on = {}; document.querySelectorAll("[data-layer]").forEach(x => on[x.dataset.layer] = x.checked);
+  try { localStorage.setItem("imdf-layers", JSON.stringify(on)); } catch {}
+  applyVisibility();
+});
 
 // ---------- Popups ----------
 let popup = null;
