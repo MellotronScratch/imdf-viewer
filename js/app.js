@@ -1,30 +1,35 @@
 "use strict";
 // Zoeken, bestanden openen, onthouden tussen verversingen en opstarten.
 
-// ---------- Search ----------
+// ---------- Zoeken in alle IMDF-objecten ----------
+const SEARCH_MAX = 60;
 $("search").oninput = debounce(() => {
   const q = $("search").value.trim().toLowerCase(), box = $("results");
   box.innerHTML = "";
-  if (q.length < 2) return;
-  // Op naam (alle talen) en categorie, en op id's: occupant-id en anchor_id, amenity-id en unit_ids
+  if (q.length < 2 || !S.searchIndex) return;
+  // Tekst (naam, categorie, adres) gaat voor id-treffers; daarna op objecttype en naam
   const hits = [];
-  for (const p of [...S.points.occupant, ...S.points.amenity]) {
-    const k = S.searchKeys?.get(p.properties._fid); if (!k) continue;
-    const byId = k.ids.find(([, v]) => v.toLowerCase().includes(q));
-    if (k.text.includes(q) || byId) hits.push({ p, via: byId && !k.text.includes(q) ? byId[0] : null });
-    if (hits.length >= 60) break;
+  for (const e of S.searchIndex) {
+    const byText = e.text.includes(q), byId = byText ? null : e.ids.find(x => x[2].includes(q));
+    if (byText || byId) hits.push({ e, via: byId?.[0] ?? null, rank: byText ? (e.text.startsWith(q) ? 0 : 1) : (byId[0] === "id" ? 2 : 3) });
   }
-  if (!hits.length) { box.innerHTML = '<div style="cursor:default;color:var(--muted)">Niets gevonden</div>'; return; }
-  for (const { p, via } of hits) {
-    const d = document.createElement("div"), pr = p.properties;
-    d.innerHTML = `${iconImg(pr.category, 16, pr._type)}<span class="res-name">${esc(pr._name)}${via ? `<span class="res-via">${esc(via)}</span>` : ""}</span><small>${esc(nm((S.levelsByOrd.get(pr._ords[0]) || [])[0]?.properties.short_name) || pr._ords[0])}</small>`;
+  if (!hits.length) { box.innerHTML = '<div class="res-none">Niets gevonden</div>'; return; }
+  for (const h of hits) h.label = refLabel(h.e.f.id) || h.e.t;
+  hits.sort((a, b) => a.rank - b.rank || a.e.order - b.e.order || a.label.localeCompare(b.label));
+  for (const { e, via, label } of hits.slice(0, SEARCH_MAX)) {
+    const f = e.f, p = f.properties || {}, o = ordsOf(f)?.[0];
+    const lvl = o != null ? nm((S.levelsByOrd.get(o) || [])[0]?.properties.short_name) || String(o) : "";
+    const icon = e.t === "amenity" || e.t === "occupant" ? iconImg(p.category, 16, e.t) : `<span class="res-ico t-${esc(e.t)}">${esc(e.t[0].toUpperCase())}</span>`;
+    const d = document.createElement("div");
+    d.title = `${e.t} · ${f.id}`;
+    d.innerHTML = `${icon}<span class="res-name">${esc(label)}${via ? `<span class="res-via">${esc(via)}</span>` : ""}</span><small>${esc(e.t)}${lvl ? " · " + esc(lvl) : ""}</small>`;
     d.onclick = () => {
-      setLevel(pr._ords[0]);
-      map.flyTo({ center: p.geometry.coordinates, zoom: Math.max(map.getZoom(), 19) });
-      map.once("moveend", () => showPopup(S.featById[pr._fid], p.geometry.coordinates));
+      if (geomOf(f)) { selectFeature(f); zoomTo(f); }
+      else { openTable(e.t); $("tbl-q").value = f.id; applyTableFilter(); }   // geen plek op de kaart: in de tabel tonen
     };
     box.appendChild(d);
   }
+  if (hits.length > SEARCH_MAX) box.insertAdjacentHTML("beforeend", `<div class="res-none">… en nog ${(hits.length - SEARCH_MAX).toLocaleString("nl-NL")} — verfijn de zoekopdracht</div>`);
 });
 
 // ---------- File input / drag & drop ----------

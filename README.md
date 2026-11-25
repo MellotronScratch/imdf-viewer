@@ -80,10 +80,38 @@ serve.js                lokale ontwikkelserver
 
 Elke push naar `main` publiceert via GitHub Actions (`.github/workflows/pages.yml`) naar GitHub Pages. Alleen `index.html`, `css/`, `js/` en `vendor/` worden gepubliceerd. IMDF-data (`*.zip`, `*.geojson`) staat in `.gitignore` en gaat nooit mee.
 
-## Bronnen en licenties
+## Gebruikte open-source software, data en diensten
 
-- [MapLibre GL JS](https://maplibre.org) 4.7.1 (BSD-3-Clause), [JSZip](https://stuk.github.io/jszip/) 3.10.1 (MIT), via CDN met SRI
-- [Turf.js](https://turfjs.org) 7.4.0 (MIT) en [RBush](https://github.com/mourner/rbush) 4.0.1 (MIT), in `vendor/`
-- Pictogrammen: [Material Design Icons](https://pictogrammers.com/library/mdi/) 7.4.47 (Apache 2.0), ingebakken in `js/icons.js`
-- Achtergrondkaart: [BRT Achtergrondkaart grijs](https://www.pdok.nl), © Kadaster
-- Lettertypen voor labels: [OpenFreeMap](https://openfreemap.org)
+De viewer is gebouwd zonder framework of build-stap: gewone HTML, CSS en JavaScript, aangevuld met de bibliotheken hieronder.
+De kaart is **MapLibre GL JS** (WebGL), niet Leaflet: met WebGL blijven de duizenden vlakken, pictogrammen en labels van een indoorkaart vlot.
+
+### In de viewer
+
+| Onderdeel | Gebruikt voor | Versie | Licentie | Geladen via |
+|---|---|---|---|---|
+| [MapLibre GL JS](https://maplibre.org) | De kaart: lagen, pictogrammen, labels, verdiepingen, zoomen | 4.7.1 | BSD-3-Clause | unpkg (CDN), met SRI |
+| [JSZip](https://stuk.github.io/jszip/) | IMDF-archieven (`.zip`) uitpakken in de browser | 3.10.1 | MIT of GPLv3 (naar keuze) | cdnjs (CDN), met SRI |
+| [Turf.js](https://turfjs.org) | Geometrische validatie: overlap, bedekking, zelfdoorsnijding, oppervlakte | 7.4.0 | MIT | `vendor/` |
+| [RBush](https://github.com/mourner/rbush) | Ruimtelijke index die de geometrische validatie snel maakt | 4.0.1 | MIT | `vendor/` |
+| [Material Design Icons](https://pictogrammers.com/library/mdi/) (Pictogrammers) | Pictogrammen voor amenities en occupants | 7.4.47 | Apache 2.0 | ingebakken in `js/icons.js` |
+
+### Data en diensten
+
+| Bron | Gebruikt voor | Voorwaarden |
+|---|---|---|
+| [BRT Achtergrondkaart grijs](https://www.pdok.nl/introductie/-/article/basisregistratie-topografie-brt-) (Kadaster, via PDOK) | Achtergrondkaart, alleen Nederland | Open data, CC BY 4.0, naamsvermelding "© Kadaster" |
+| [OpenFreeMap](https://openfreemap.org) | Lettertypebestanden (glyphs) voor de kaartlabels | Gratis dienst; lettertype Noto Sans onder SIL Open Font License 1.1 |
+| [OGC IMDF 1.0.0, Community Standard 20-094](https://docs.ogc.org/cs/20-094/) | Categorielijsten en specificatie | OGC-documentlicentie |
+| [OGC IMDF-validatieregels 1.0.3](https://docs.ogc.org/cs/20-094/imdf-validations-1.0.3.csv) | De 358 validatieregels (naam, ernst, definitie) | OGC-documentlicentie |
+| [unpkg](https://unpkg.com) en [cdnjs](https://cdnjs.com) | Levering van MapLibre en JSZip | Gratis CDN's; integriteit gecontroleerd met SRI |
+| [GitHub Pages](https://pages.github.com) en [GitHub Actions](https://github.com/features/actions) | Hosting en automatische uitrol | Gratis voor openbare repositories |
+
+De uitrol gebruikt de GitHub Actions `actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact` en `actions/deploy-pages` (alle MIT).
+
+### Alleen tijdens het bouwen en testen (niet in de site)
+
+| Hulpmiddel | Gebruikt voor |
+|---|---|
+| [Node.js](https://nodejs.org) | Lokale server (`serve.js`) en het testen van de validator buiten de browser |
+| Google Chrome (headless) via het [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) | Automatische browsertests: laden, thema, tabel, validatie, beveiliging |
+| [ESLint](https://eslint.org) | Controle op fouten en ongebruikte code |

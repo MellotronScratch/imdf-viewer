@@ -148,6 +148,7 @@ const ordsOf = f => {
   const p = f.properties;
   if (f.feature_type === "level") return [p.ordinal];
   if (p._ord != null) return [p._ord];
+  if (f.feature_type === "anchor") { const o = S.unitById[p.unit_id]?.properties._ord; return o != null ? [o] : null; }   // verdieping van de verwezen unit
   const pt = S.pointById?.get(f.id);
   return pt ? pt.properties._ords : null;
 };

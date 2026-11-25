@@ -60,6 +60,15 @@ details.cats .list { padding-left: 18px; }
 #results div:hover { background: var(--hover); }
 #results small { color: var(--muted); margin-left: auto; white-space: nowrap; }
 #results .res-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#results .res-none { cursor: default; color: var(--muted); }
+#results .res-none:hover { background: none; }
+#results .res-ico { width: 16px; height: 16px; flex: none; border-radius: 4px; display: grid; place-items: center; font: 700 9px system-ui, sans-serif;
+  color: #fff; background: #8a95a5; }
+#results .res-ico.t-venue, #results .res-ico.t-building, #results .res-ico.t-footprint { background: #4c5fd5; }
+#results .res-ico.t-level { background: #1c7ed6; }
+#results .res-ico.t-unit, #results .res-ico.t-section, #results .res-ico.t-geofence { background: #0c8599; }
+#results .res-ico.t-fixture, #results .res-ico.t-kiosk { background: #a5794f; }
+#results .res-ico.t-anchor, #results .res-ico.t-address { background: #ae3ec9; }
 #results .res-via { margin-left: 6px; font-size: 11px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 5px; }
 #mapwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #mapbox { flex: 1; position: relative; min-height: 120px; }

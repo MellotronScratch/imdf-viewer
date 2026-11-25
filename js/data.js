@@ -53,6 +53,30 @@ async function ingest(raw, label) {
   setTimeout(runValidation, 30);   // na het tekenen van de kaart
 }
 
+// ---------- Zoekindex over alle IMDF-objecten ----------
+// Per feature: doorzoekbare tekst (namen, alt_name, short_name in alle talen, categorie, adresvelden)
+// en alle id's (eigen id en verwijzingen zoals level_id, unit_ids, anchor_id, origin/destination).
+const SEARCH_TYPES = ["venue", "building", "footprint", "level", "unit", "opening", "section", "fixture", "kiosk", "geofence",
+  "amenity", "occupant", "anchor", "address", "relationship", "detail"];
+function buildSearchIndex() {
+  const labels = o => o && typeof o === "object" ? Object.values(o).filter(v => typeof v === "string") : [];
+  S.searchIndex = [];
+  SEARCH_TYPES.forEach((t, order) => { for (const f of feats(t)) {
+    const p = f.properties || {};
+    const text = [...labels(p.name), ...labels(p.alt_name), ...labels(p.short_name), p.category || "",
+      ...(t === "address" ? [p.address, p.unit, p.locality, p.province, p.country, p.postal_code] : [])].filter(Boolean).join(" ").toLowerCase();
+    const ids = typeof f.id === "string" ? [["id", f.id]] : [];
+    for (const [k, v] of Object.entries(p)) {
+      if (k.startsWith("_")) continue;
+      if (/_id$/.test(k) && typeof v === "string") ids.push([k, v]);
+      else if ((/_ids$/.test(k) || k === "parents") && Array.isArray(v)) for (const x of v) if (typeof x === "string") ids.push([k, x]);
+    }
+    for (const k of ["origin", "destination"]) if (typeof p[k]?.id === "string") ids.push([k, p[k].id]);
+    if (Array.isArray(p.intermediary)) for (const r of p.intermediary) if (typeof r?.id === "string") ids.push(["intermediary", r.id]);
+    S.searchIndex.push({ f, t, order, text, ids: ids.map(([k, v]) => [k, v, v.toLowerCase()]) });
+  } });
+}
+
 // ---------- Build model ----------
 function feats(t) { return S.data[t]?.features || []; }
 function build() {
@@ -105,13 +129,7 @@ function build() {
       _name: nm(p.name) || "Occupant", _color: groupColor(OCC_GROUPS, p.category),
       _icon: "oc-" + (p.category || "unspecified") } });
   }
-  // Zoekvelden per punt voor het zoekveld in de zijbalk: namen (alle talen), categorie en id's
-  S.searchKeys = new Map();
-  const names = o => o && typeof o === "object" ? Object.values(o).filter(v => typeof v === "string") : [];
-  for (const o of feats("occupant")) S.searchKeys.set(o.id, { text: [...names(o.properties.name), o.properties.category || ""].join(" ").toLowerCase(),
-    ids: [["id", o.id], ["anchor_id", o.properties.anchor_id]].filter(([, v]) => typeof v === "string") });
-  for (const a of feats("amenity")) S.searchKeys.set(a.id, { text: [...names(a.properties.name), a.properties.category || ""].join(" ").toLowerCase(),
-    ids: [["id", a.id], ...(a.properties.unit_ids || []).map(u => ["unit_ids", u])].filter(([, v]) => typeof v === "string") });
+  buildSearchIndex();
   // Snel opzoeken van het kaartpunt van een amenity/occupant (voor tabel en validatie)
   S.pointById = new Map([...S.points.amenity, ...S.points.occupant].map(p => [p.properties._fid, p]));
   renderInfo();
