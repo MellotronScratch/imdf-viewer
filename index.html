@@ -166,7 +166,7 @@ const PALETTE = {
     bg: "#e9edf2", venueFill: "#ffffff", venueLine: "#4c5fd5", levelFill: "#fbfcfd", levelLine: "#8a95a5",
     line: "#c3cbd6", detail: "#a3adbb", opening: "#fbfcfd", text: "#1d2330", halo: "#ffffff", ptStroke: "#ffffff",
     unitOpacity: 1, sectionOpacity: 0.85, fixtureOpacity: 1, kiosk: "#c9d1dc",
-    raster: { opacity: 0.55, sat: -0.85, min: 0, max: 1 },
+    raster: { opacity: 0.6, sat: 0, min: 0, max: 1 },
     unit: { walkway: "#fbfcfd", room: "#eef1f6", nonpublic: "#e1e5eb", structure: "#c5ccd6", unspecified: "#f1f3f7",
       glass: "#d9eef5", brick: "#e7d6ca", stairs: "#dde5ff", escalator: "#dde5ff", elevator: "#d0dbff",
       movingwalkway: "#e4eaff", ramp: "#e4eaff", restroom: "#ece5fb", lounge: "#f6eddc", parking: "#e6e9ee",
@@ -179,7 +179,7 @@ const PALETTE = {
     bg: "#0b0f15", venueFill: "#111720", venueLine: "#8d9bff", levelFill: "#121821", levelLine: "#556277",
     line: "#3a4659", detail: "#465367", opening: "#232c39", text: "#e7ebf2", halo: "#0b0f15", ptStroke: "#0f141b",
     unitOpacity: 1, sectionOpacity: 0.8, fixtureOpacity: 1, kiosk: "#36404f",
-    raster: { opacity: 0.45, sat: -1, min: 0.85, max: 0.05 },   // min>max keert de OSM-tegels om → donkere ondergrond
+    raster: { opacity: 0.5, sat: -1, min: 0.8, max: 0.06 },   // min>max keert de grijze BRT-tegels om → donkere ondergrond
     unit: { walkway: "#232c39", room: "#2c3647", nonpublic: "#1d2530", structure: "#465266", unspecified: "#283241",
       glass: "#1d3641", brick: "#3a2e28", stairs: "#25305a", escalator: "#25305a", elevator: "#2b3870",
       movingwalkway: "#243050", ramp: "#243050", restroom: "#302a4c", lounge: "#382f22", parking: "#232a34",
@@ -368,9 +368,10 @@ const map = new maplibregl.Map({
     version: 8,
     glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
     sources: {
+      // BRT Achtergrondkaart grijs (Kadaster/PDOK) — dekt alleen Nederland, zoom 0–19
       basemap: { type: "raster", tileSize: 256, maxzoom: 19,
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
+        tiles: ["https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png"],
+        attribution: 'Kaartgegevens © <a href="https://www.kadaster.nl">Kadaster</a> (BRT Achtergrondkaart)' }
     },
     layers: [
       { id: "bg", type: "background", paint: { "background-color": pal().bg } },
