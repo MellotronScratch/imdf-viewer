@@ -188,6 +188,9 @@
   .vbadge.zero { opacity: .5; }
   .vbadge:not(.sm):hover { border-color: currentColor; }
   .val-meta { line-height: 1.6; }
+  .val-warn { font-size: 12px; color: #b35c00; margin: 2px 0 4px; } :root[data-theme="dark"] .val-warn { color: #ffc078; }
+  .spin { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; margin-right: 6px; vertical-align: -1px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
   .linkbtn:hover { text-decoration: underline; }
   .vstat { font-size: 11.5px; } .vstat.ok { color: #0ca678; } .vstat.part { color: #e8590c; } .vstat.no { color: var(--muted); }
@@ -858,12 +861,25 @@ function setLang(l) {
 
 // ---------- Validatie (validator.js, regels uit de OGC-lijst imdf-validations-1.0.3) ----------
 const SEV = { Violation: { nl: "Fout", ord: 0, cls: "v", icon: "✕" }, Warning: { nl: "Waarschuwing", ord: 1, cls: "w", icon: "⚠" }, Info: { nl: "Info", ord: 2, cls: "i", icon: "ℹ" } };
+// Validatie draait in een Web Worker (validator.js + Turf.js/RBush voor de geometrische regels),
+// zodat de kaart bruikbaar blijft. Lukt dat niet, dan alleen de niet-geometrische regels op de hoofdthread.
+const GEO_LIBS = ["https://unpkg.com/@turf/turf@7.4.0/turf.min.js", "https://unpkg.com/rbush@4.0.1/rbush.min.js"];
+let valWorker = null;
+function setValStatus(t) { const el = $("val-body"); if (el && !S.val) el.innerHTML = `<span class="muted"><span class="spin"></span>${esc(t)}</span>`; }
 function runValidation() {
   if (!S.loaded || typeof validateIMDF !== "function") return;
-  const t0 = performance.now();
-  try { S.val = validateIMDF({ data: S.data, lang: S.data.manifest?.language || S.lang }); S.val.ms = Math.round(performance.now() - t0); }
-  catch (e) { console.error(e); S.val = { error: e.message }; }
-  renderValidation();
+  const t0 = performance.now(), gen = S.valGen = (S.valGen || 0) + 1, lang = S.data.manifest?.language || S.lang;
+  S.val = null; setValStatus("Valideren…");
+  const done = v => { if (gen !== S.valGen) return; S.val = v; S.val.ms = Math.round(performance.now() - t0); valWorker?.terminate(); valWorker = null; renderValidation(); };
+  const fallback = why => { if (gen !== S.valGen) return; valWorker?.terminate(); valWorker = null;
+    try { const v = validateIMDF({ data: S.data, lang }); v.geoError = why; done(v); } catch (e) { console.error(e); done({ error: e.message }); } };
+  try {
+    valWorker?.terminate();
+    valWorker = new Worker("validator.js");
+    valWorker.onmessage = e => { const m = e.data; if (m.progress) return gen === S.valGen && setValStatus(m.progress); m.error ? done({ error: m.error }) : done(m.result); };
+    valWorker.onerror = e => { e.preventDefault?.(); fallback("Achtergrondvalidatie niet beschikbaar (" + (e.message || "worker-fout") + "); geometrische regels niet gecontroleerd."); };
+    valWorker.postMessage({ data: S.data, lang, libs: GEO_LIBS });
+  } catch (e) { fallback("Achtergrondvalidatie niet beschikbaar (" + e.message + "); geometrische regels niet gecontroleerd."); }
 }
 function renderValidation() {
   const el = $("val-body"); if (!el || !S.val) return;
@@ -874,12 +890,13 @@ function renderValidation() {
       <button class="vbadge w${st.warnings ? "" : " zero"}" data-sev="Warning" title="Warnings: waarschijnlijk een probleem">⚠ ${plural(st.warnings, "waarschuwing", "waarschuwingen")}</button>
       <button class="vbadge i${st.info ? "" : " zero"}" data-sev="Info" title="Info: ter informatie">ℹ ${plural(st.info, "info", "info")}</button>
     </div>
-    <div class="muted val-meta">${st.checked} van ${st.total} regels gecontroleerd · ${S.val.ms ?? "?"} ms ·
+    ${S.val.geoError ? `<div class="val-warn">⚠ ${esc(S.val.geoError)}</div>` : ""}
+    <div class="muted val-meta">${st.checked} van ${st.total} regels gecontroleerd · ${S.val.ms != null ? (S.val.ms / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 1 }) + " s" : "?"} ·
       <button class="linkbtn" id="val-all">alle bevindingen</button> · <button class="linkbtn" id="val-rules">regels</button> · <button class="linkbtn" id="val-rerun">opnieuw</button></div>`;
   el.querySelectorAll("[data-sev]").forEach(b => b.onclick = () => openIssues({ severity: b.dataset.sev }));
   $("val-all").onclick = () => openIssues({});
   $("val-rules").onclick = openRules;
-  $("val-rerun").onclick = () => { el.innerHTML = '<span class="muted">Valideren…</span>'; setTimeout(runValidation, 30); };
+  $("val-rerun").onclick = () => runValidation();
 }
 const sevCell = v => SEV[v] ? `<span class="vbadge ${SEV[v].cls} sm">${SEV[v].icon} ${SEV[v].nl}</span>` : null;
 const sevSort = (c, v) => c === "ernst" ? (SEV[v]?.ord ?? 9) : undefined;
