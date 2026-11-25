@@ -166,27 +166,30 @@ const PALETTE = {
   light: {
     bg: "#e9edf2", venueFill: "#ffffff", venueLine: "#4c5fd5", levelFill: "#fbfcfd", levelLine: "#8a95a5",
     line: "#c3cbd6", detail: "#a3adbb", opening: "#fbfcfd", text: "#1d2330", halo: "#ffffff",
-    unitOpacity: 1, sectionOpacity: 0.85, fixtureOpacity: 1, kiosk: "#c9d1dc",
+    unitOpacity: 1, sectionGlow: 0.32, fixtureOpacity: 1, kiosk: "#c9d1dc",
     raster: { opacity: 0.6, sat: 0, min: 0, max: 1 },
     unit: { walkway: "#fbfcfd", room: "#eef1f6", nonpublic: "#e1e5eb", structure: "#c5ccd6", unspecified: "#f1f3f7",
       glass: "#d9eef5", brick: "#e7d6ca", stairs: "#dde5ff", escalator: "#dde5ff", elevator: "#d0dbff",
       movingwalkway: "#e4eaff", ramp: "#e4eaff", restroom: "#ece5fb", lounge: "#f6eddc", parking: "#e6e9ee",
       platform: "#e8e2d6", terrace: "#e2efe1", road: "#d9dde3", opentobelow: "rgba(0,0,0,0)" },
-    section: { seating: "#f4ead9", walkway: "#f5f7fa", baggageclaim: "#e3eaf6", vegetation: "#d5ead3",
-      parking: "#e4e7ec", road: "#d7dbe1", parkandride: "#e4e7ec", platform: "#e8e2d6", _: "#eceff4" },
+    // Section-kleuren: alleen de rand + een zachte gloed naar binnen, het midden blijft transparant
+    section: { seating: "#b98545", security: "#e03e52", presecurity: "#f08c3c", postsecurity: "#1b9aaa", walkway: "#7f95ae",
+      vegetation: "#4fa64a", parking: "#5f6fd1", parkandride: "#8a63d2", road: "#87909c", baggageclaim: "#2f86d6",
+      platform: "#a5794f", _: "#94a0b0" },
     fixture: { furniture: "#d5dbe4", "checkin.desk": "#b9c6ec", desk: "#d0d6df", baggagecarousel: "#aebbd8", _: "#cdd4de" }
   },
   dark: {
     bg: "#0b0f15", venueFill: "#111720", venueLine: "#8d9bff", levelFill: "#121821", levelLine: "#556277",
     line: "#3a4659", detail: "#465367", opening: "#232c39", text: "#e7ebf2", halo: "#0b0f15",
-    unitOpacity: 1, sectionOpacity: 0.8, fixtureOpacity: 1, kiosk: "#36404f",
+    unitOpacity: 1, sectionGlow: 0.4, fixtureOpacity: 1, kiosk: "#36404f",
     raster: { opacity: 0.5, sat: -1, min: 0.8, max: 0.06 },   // min>max keert de grijze BRT-tegels om → donkere ondergrond
     unit: { walkway: "#232c39", room: "#2c3647", nonpublic: "#1d2530", structure: "#465266", unspecified: "#283241",
       glass: "#1d3641", brick: "#3a2e28", stairs: "#25305a", escalator: "#25305a", elevator: "#2b3870",
       movingwalkway: "#243050", ramp: "#243050", restroom: "#302a4c", lounge: "#382f22", parking: "#232a34",
       platform: "#332e26", terrace: "#1f3324", road: "#2a313b", opentobelow: "rgba(0,0,0,0)" },
-    section: { seating: "#3b3225", walkway: "#252e3b", baggageclaim: "#22304a", vegetation: "#1d3523",
-      parking: "#252c36", road: "#2b323c", parkandride: "#252c36", platform: "#332e26", _: "#232b37" },
+    section: { seating: "#d6a566", security: "#ff6b7d", presecurity: "#ffa860", postsecurity: "#3cc6d4", walkway: "#8fa3bd",
+      vegetation: "#73c46d", parking: "#8c9bff", parkandride: "#b391ff", road: "#7d8794", baggageclaim: "#5eaaf2",
+      platform: "#c4986a", _: "#8a96a8" },
     fixture: { furniture: "#333d4b", "checkin.desk": "#354679", desk: "#343e4c", baggagecarousel: "#3b4a72", _: "#323b48" }
   }
 };
@@ -393,8 +396,9 @@ function applyMapTheme() {
   set("venue-fill", "fill-color", P.venueFill); set("venue-line", "line-color", P.venueLine);
   set("level-fill", "fill-color", P.levelFill); set("level-line", "line-color", P.levelLine);
   set("unit-fill", "fill-color", matchColor(P.unit, P.unit.unspecified)); set("unit-fill", "fill-opacity", P.unitOpacity);
-  for (const id of ["unit-line", "unit-otb", "section-line", "fixture-line"]) set(id, "line-color", P.line);
-  set("section-fill", "fill-color", matchColor(P.section, P.section._)); set("section-fill", "fill-opacity", P.sectionOpacity);
+  for (const id of ["unit-line", "unit-otb", "fixture-line"]) set(id, "line-color", P.line);
+  const secColor = matchColor(P.section, P.section._);
+  set("section-line", "line-color", secColor); set("section-glow", "line-color", secColor); set("section-glow", "line-opacity", P.sectionGlow);
   set("fixture-fill", "fill-color", matchColor(P.fixture, P.fixture._)); set("fixture-fill", "fill-opacity", P.fixtureOpacity);
   set("kiosk-fill", "fill-color", P.kiosk);
   set("detail-line", "line-color", P.detail); set("opening-line", "line-color", P.opening);
@@ -533,8 +537,9 @@ function matchColor(table, fallback) {
 const LAYERS = [];
 function addLayer(def, group) { map.addLayer(def); LAYERS.push({ id: def.id, group }); }
 
-// Zoombanden: onder zoom 18 worden gelijke punten geclusterd (cz = zoom waarop de afstand berekend wordt)
-const CLUSTER_BANDS = [{ max: 15, cz: 14 }, { min: 15, max: 16, cz: 15 }, { min: 16, max: 17, cz: 16 }, { min: 17, max: 18, cz: 17 }, { min: 18 }];
+// Zoombanden: onder zoom 15 geen punten; tot zoom 18 worden gelijke punten geclusterd (cz = zoom waarop de afstand berekend wordt)
+const POINTS_MINZOOM = 15;
+const CLUSTER_BANDS = [{ min: POINTS_MINZOOM, max: 16, cz: 15 }, { min: 16, max: 17, cz: 16 }, { min: 17, max: 18, cz: 17 }, { min: 18 }];
 const layersOf = (t, kind) => LAYERS.filter(l => l.id.startsWith(`${t}-${kind}-`)).map(l => l.id);
 function clusterPoints(points, z) {
   // Wereldpixels (512px-tegels) op zoom z
@@ -567,13 +572,27 @@ function clusterPoints(points, z) {
   return out;
 }
 
+// Zet de ringrichting vast (buitenring tegen de klok in, gaten met de klok mee),
+// zodat een positieve line-offset altijd naar binnen wijst
+function rewind(features) {
+  const area = r => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return a; };
+  const fix = (r, ccw) => (area(r) > 0) === ccw ? r : [...r].reverse();
+  const poly = rings => rings.map((r, i) => fix(r, i === 0));
+  return features.map(f => {
+    const g = f.geometry; if (!g) return f;
+    if (g.type === "Polygon") return { ...f, geometry: { type: "Polygon", coordinates: poly(g.coordinates) } };
+    if (g.type === "MultiPolygon") return { ...f, geometry: { type: "MultiPolygon", coordinates: g.coordinates.map(poly) } };
+    return f;
+  });
+}
+
 function render() {
   for (const l of LAYERS.splice(0)) if (map.getLayer(l.id)) map.removeLayer(l.id);
   for (const s of Object.keys(map.getStyle().sources)) if (s !== "basemap") map.removeSource(s);
 
   const src = (id, features) => map.addSource(id, { type: "geojson", data: fc(features.filter(f => f.geometry)) });
   src("venue", feats("venue")); src("footprint", feats("footprint")); src("level", feats("level"));
-  src("unit", feats("unit")); src("section", feats("section")); src("fixture", feats("fixture"));
+  src("unit", feats("unit")); src("section", rewind(feats("section"))); src("fixture", feats("fixture"));
   src("detail", feats("detail")); src("opening", feats("opening")); src("kiosk", feats("kiosk"));
   // Punten per zoomband: uitgezoomd worden gelijke punten (zelfde categorie + verdieping) samengevoegd
   for (const t of ["amenity", "occupant"]) CLUSTER_BANDS.forEach((b, i) =>
@@ -587,8 +606,14 @@ function render() {
   addLayer({ id: "unit-fill", type: "fill", source: "unit", paint: {} }, "unit");
   addLayer({ id: "unit-line", type: "line", source: "unit", filter: ["!=", ["get", "category"], "opentobelow"], paint: { "line-width": ["interpolate", ["linear"], ["zoom"], 16, 0.3, 20, 1] } }, "unit");
   addLayer({ id: "unit-otb", type: "line", source: "unit", filter: ["==", ["get", "category"], "opentobelow"], paint: { "line-width": 1, "line-dasharray": [2, 2] } }, "unit");
-  addLayer({ id: "section-fill", type: "fill", source: "section", paint: {} }, "section");
-  addLayer({ id: "section-line", type: "line", source: "section", paint: { "line-width": 0.5, "line-opacity": 0.7 } }, "section");
+  // Section: onzichtbare vulling (alleen voor klikken), een gloed die vanaf de rand naar binnen vervaagt, en een dunne rand
+  const glowW = ["interpolate", ["exponential", 1.5], ["zoom"], 15, 2, 17, 6, 19, 14, 21, 28];
+  addLayer({ id: "section-fill", type: "fill", source: "section", paint: { "fill-opacity": 0 } }, "section");
+  addLayer({ id: "section-glow", type: "line", source: "section", layout: { "line-join": "round" }, paint: {
+    "line-width": glowW, "line-blur": glowW,
+    "line-offset": ["interpolate", ["exponential", 1.5], ["zoom"], 15, 1, 17, 3, 19, 7, 21, 14] } }, "section");
+  addLayer({ id: "section-line", type: "line", source: "section", layout: { "line-join": "round" }, paint: {
+    "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 19, 1.4], "line-opacity": 0.8 } }, "section");
   addLayer({ id: "fixture-fill", type: "fill", source: "fixture", paint: {} }, "fixture");
   addLayer({ id: "fixture-line", type: "line", source: "fixture", paint: { "line-width": 0.4 } }, "fixture");
   addLayer({ id: "kiosk-fill", type: "fill", source: "kiosk", paint: {} }, "fixture");
@@ -671,7 +696,7 @@ function applyPointFilter(t) {
 }
 function setLevel(o, closePopups = true) {
   S.ord = o;
-  for (const id of ["level-fill", "level-line", "unit-fill", "section-fill", "section-line", "fixture-fill", "fixture-line", "kiosk-fill", "detail-line", "opening-line"])
+  for (const id of ["level-fill", "level-line", "unit-fill", "section-fill", "section-glow", "section-line", "fixture-fill", "fixture-line", "kiosk-fill", "detail-line", "opening-line"])
     map.setFilter(id, levelFilter());
   map.setFilter("unit-line", levelFilter(["!=", ["get", "category"], "opentobelow"]));
   map.setFilter("unit-otb", levelFilter(["==", ["get", "category"], "opentobelow"]));
