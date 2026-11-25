@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="validator.js"></script>
 <style>
   /* Thema: data-theme ("light"/"dark") wordt door het script hieronder altijd gezet */
   :root {
@@ -176,6 +177,20 @@
   button.tag:hover { border-color: var(--accent); }
   button.tag.on { background: var(--accent); color: var(--accent-text); }
   .tag .lcnt { font-size: 10px; opacity: .7; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  /* Validatie */
+  .val-sum { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 6px; }
+  .vbadge { border: 1px solid transparent; border-radius: 8px; padding: 3px 9px; font: 600 12px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+  .vbadge.sm { padding: 0 7px; font-size: 11px; line-height: 18px; cursor: default; }
+  .vbadge.v { background: color-mix(in srgb, #e03131 14%, transparent); color: #c92a2a; }
+  .vbadge.w { background: color-mix(in srgb, #f08c00 16%, transparent); color: #b35c00; }
+  .vbadge.i { background: color-mix(in srgb, #1c7ed6 14%, transparent); color: #1864ab; }
+  :root[data-theme="dark"] .vbadge.v { color: #ff8787; } :root[data-theme="dark"] .vbadge.w { color: #ffc078; } :root[data-theme="dark"] .vbadge.i { color: #74c0fc; }
+  .vbadge.zero { opacity: .5; }
+  .vbadge:not(.sm):hover { border-color: currentColor; }
+  .val-meta { line-height: 1.6; }
+  .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+  .linkbtn:hover { text-decoration: underline; }
+  .vstat { font-size: 11.5px; } .vstat.ok { color: #0ca678; } .vstat.part { color: #e8590c; } .vstat.no { color: var(--muted); }
   .tag { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 0 6px; font-size: 12px; margin: 1px 2px 1px 0; }
   .maplibregl-popup-content { background: var(--panel); color: var(--text); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); font: 13px/1.4 system-ui, sans-serif; max-width: 300px; }
   .maplibregl-popup-tip { border-top-color: var(--panel) !important; border-bottom-color: var(--panel) !important; }
@@ -715,6 +730,8 @@ async function ingest(raw, label) {
   $("drop").classList.add("hidden");
   $("venue-sub").textContent = label;
   S.loaded = true;
+  S.val = null;
+  setTimeout(runValidation, 30);   // na het tekenen van de kaart
 }
 
 // ---------- Build model ----------
@@ -805,7 +822,9 @@ function renderInfo() {
   const types = ["building", "footprint", "level", "unit", "opening", "section", "fixture", "detail", "kiosk", "geofence", "anchor", "occupant", "amenity", "relationship"];
   html += '<div class="sub">Inhoud</div><div class="counts">' + types.filter(t => feats(t).length)
     .map(t => `<span><button data-table="${t}" title="Toon tabelinhoud van ${t}">${t}</button></span><span>${feats(t).length.toLocaleString("nl-NL")}</span>`).join("") + "</div>";
+  html += '<div class="sub">Validatie <span class="muted" style="text-transform:none;letter-spacing:0">· OGC IMDF 1.0.0</span></div><div id="val-body"><span class="muted">Valideren…</span></div>';
   $("info-body").innerHTML = html;
+  if (S.val) renderValidation();
   $("info-body").querySelectorAll(".lang-tag").forEach(b => b.onclick = () => setLang(b.dataset.lang));
   $("info-body").querySelectorAll("[data-table]").forEach(b => b.onclick = () => openTable(b.dataset.table));
   $("info").classList.remove("hidden");
@@ -835,6 +854,54 @@ function setLang(l) {
   setLevel(ord, true);
   $("search").oninput();
   if (T.type && !$("tbl").classList.contains("hidden")) { T.text = new Map(); renderRows(); }
+}
+
+// ---------- Validatie (validator.js, regels uit de OGC-lijst imdf-validations-1.0.3) ----------
+const SEV = { Violation: { nl: "Fout", ord: 0, cls: "v", icon: "✕" }, Warning: { nl: "Waarschuwing", ord: 1, cls: "w", icon: "⚠" }, Info: { nl: "Info", ord: 2, cls: "i", icon: "ℹ" } };
+function runValidation() {
+  if (!S.loaded || typeof validateIMDF !== "function") return;
+  const t0 = performance.now();
+  try { S.val = validateIMDF({ data: S.data, lang: S.data.manifest?.language || S.lang }); S.val.ms = Math.round(performance.now() - t0); }
+  catch (e) { console.error(e); S.val = { error: e.message }; }
+  renderValidation();
+}
+function renderValidation() {
+  const el = $("val-body"); if (!el || !S.val) return;
+  if (S.val.error) { el.innerHTML = `<span class="vbadge v">Validatie mislukt: ${esc(S.val.error)}</span>`; return; }
+  const st = S.val.stats, plural = (n, a, b) => `${n.toLocaleString("nl-NL")} ${n === 1 ? a : b}`;
+  el.innerHTML = `<div class="val-sum">
+      <button class="vbadge v${st.violations ? "" : " zero"}" data-sev="Violation" title="Violations: overtredingen van de standaard">✕ ${plural(st.violations, "fout", "fouten")}</button>
+      <button class="vbadge w${st.warnings ? "" : " zero"}" data-sev="Warning" title="Warnings: waarschijnlijk een probleem">⚠ ${plural(st.warnings, "waarschuwing", "waarschuwingen")}</button>
+      <button class="vbadge i${st.info ? "" : " zero"}" data-sev="Info" title="Info: ter informatie">ℹ ${plural(st.info, "info", "info")}</button>
+    </div>
+    <div class="muted val-meta">${st.checked} van ${st.total} regels gecontroleerd · ${S.val.ms ?? "?"} ms ·
+      <button class="linkbtn" id="val-all">alle bevindingen</button> · <button class="linkbtn" id="val-rules">regels</button> · <button class="linkbtn" id="val-rerun">opnieuw</button></div>`;
+  el.querySelectorAll("[data-sev]").forEach(b => b.onclick = () => openIssues({ severity: b.dataset.sev }));
+  $("val-all").onclick = () => openIssues({});
+  $("val-rules").onclick = openRules;
+  $("val-rerun").onclick = () => { el.innerHTML = '<span class="muted">Valideren…</span>'; setTimeout(runValidation, 30); };
+}
+const sevCell = v => SEV[v] ? `<span class="vbadge ${SEV[v].cls} sm">${SEV[v].icon} ${SEV[v].nl}</span>` : null;
+const sevSort = (c, v) => c === "ernst" ? (SEV[v]?.ord ?? 9) : undefined;
+function openIssues({ severity, rule, feature }) {
+  if (!S.val?.issues) return;
+  const list = S.val.issues.filter(x => (!severity || x.severity === severity) && (!rule || (x.rule === rule && x.feature === feature)))
+    .sort((a, b) => SEV[a.severity].ord - SEV[b.severity].ord || a.rule.localeCompare(b.rule));
+  const rows = list.map((x, i) => ({ type: "Feature", id: "val-" + i, feature_type: "_issue", geometry: null,
+    properties: { ernst: x.severity, regel: x.rule, featuretype: x.ftype || (x.feature === "N/A" ? "archief" : x.feature.toLowerCase()), feature: x.fid, attribuut: x.attr, melding: x.msg } }));
+  openTable("validatie", { rows, hideId: true, cell: (c, v) => c === "ernst" ? sevCell(v) : null, sortKey: sevSort,
+    title: "Validatie · " + (rule ? rule : severity ? SEV[severity].nl.toLowerCase().replace(/^fout$/, "fouten").replace(/^waarschuwing$/, "waarschuwingen") : "alle bevindingen") });
+}
+function openRules() {
+  if (!S.val?.rules) return;
+  const rows = S.val.rules.map((r, i) => ({ type: "Feature", id: "rule-" + i, feature_type: "_rule", geometry: null,
+    properties: { featuretype: r.feature === "N/A" ? "archief" : r.feature.toLowerCase(), ernst: r.severity, regel: r.rule, bevindingen: r.count,
+      status: !r.checked ? "niet gecontroleerd" : r.partial ? "gedeeltelijk" : "gecontroleerd", toelichting: r.partial, definitie: r.definition, _rule: r } }))
+    .sort((a, b) => (b.properties.bevindingen > 0) - (a.properties.bevindingen > 0) || SEV[a.properties.ernst].ord - SEV[b.properties.ernst].ord || a.properties.regel.localeCompare(b.properties.regel));
+  const ST = { "gecontroleerd": "ok", "gedeeltelijk": "part", "niet gecontroleerd": "no" };
+  openTable("validatieregels", { rows, hideId: true, title: "Validatie · regels (OGC imdf-validations-1.0.3)",
+    cell: (c, v) => c === "ernst" ? sevCell(v) : c === "status" ? `<span class="vstat ${ST[v]}">${esc(v)}</span>` : c === "bevindingen" ? (v ? `<span class="chip ref">${v.toLocaleString("nl-NL")} →</span>` : '<span class="nil">0</span>') : null,
+    sortKey: sevSort, onRow: row => { const r = row.properties._rule; if (r.count) openIssues({ rule: r.rule, feature: r.feature }); } });
 }
 
 // ---------- Render ----------
@@ -1280,16 +1347,18 @@ function searchText(f) {
   return parts.join(" ").toLowerCase();
 }
 const ordsOf = f => {
+  f = target(f); if (!f || f.feature_type?.startsWith("_")) return null;
   const p = f.properties;
   if (f.feature_type === "level") return [p.ordinal];
   if (p._ord != null) return [p._ord];
   const pt = S.points[f.feature_type]?.find(x => x.properties._fid === f.id);
   return pt ? pt.properties._ords : null;
 };
-function openTable(type) {
+// opts: { rows, title, hideId, cell(col, v) → html, sortKey(col, v), onRow(row) }
+function openTable(type, opts = {}) {
   if (!S.loaded) return;
   hideCtx();
-  T.type = type; T.rows = feats(type); T.sort = null; T.dir = 1; T.sel = null;
+  T.type = type; T.opts = opts; T.rows = opts.rows || feats(type); T.sort = null; T.dir = 1; T.sel = null; T.lastClick = null;
   T.text = new Map();
   // Kolommen: alle attributen (volgorde van eerste voorkomen, interne _-velden niet), dan geometrie
   const keys = [], seen = new Set();
@@ -1297,19 +1366,20 @@ function openTable(type) {
   const allNull = k => T.rows.every(f => f.properties[k] == null);
   const shown = keys.filter(k => !allNull(k)), hidden = keys.filter(allNull);
   // Attributen eerst; id en geometrie achteraan (breed en minder vaak nodig)
-  T.cols = [...shown, "id"]; if (T.rows.some(f => f.geometry)) T.cols.push("geometry");
+  T.cols = opts.hideId ? shown : [...shown, "id"]; if (T.rows.some(f => f.geometry)) T.cols.push("geometry");
   T.emptyCols = hidden;
   // Kolombreedtes schatten op een steekproef
   const sample = T.rows.slice(0, 300);
   T.autoW = T.cols.map(c => {
     if (c === "id") return 300;
+    if (c === "ernst") return 140;
     let m = c.length + 2;
     for (const f of sample) { const v = rowVal(f, c); const tx = v == null ? "" : typeof v === "string" ? (refLabel(v) || v) : isLangObj(v) ? nm(v) + "  +1" : Array.isArray(v) ? v.slice(0, 3).map(x => (typeof x === "string" && refLabel(x)) || String(x).slice(0, 18)).join("   ") : typeof v === "object" ? "{ xxxxxxxxxxxxxxxxxxxx }" : String(v); m = Math.max(m, tx.length); }
-    return Math.max(70, Math.min(320, m * 7 + 26));
+    return Math.max(70, Math.min(c === "melding" || c === "definitie" || c === "toelichting" ? 520 : 320, m * 7 + 26));
   });
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("imdf-colw") || "{}")[type] || {}; } catch {}
   T.widths = T.cols.map((c, i) => saved[c] || T.autoW[i]);
-  $("tbl-title").textContent = type;
+  $("tbl-title").textContent = opts.title || type;
   $("tbl-q").value = "";
   $("tbl-level").parentElement.classList.toggle("hidden", !T.rows.some(f => ordsOf(f)));
   $("tbl").classList.remove("hidden");
@@ -1367,7 +1437,8 @@ function applyTableFilter(resetScroll = true) {
   if (q) v = v.filter(f => { let t = T.text.get(f); if (t == null) T.text.set(f, t = searchText(f)); return q.split(/\s+/).every(w => t.includes(w)); });
   if (T.sort) {
     const c = T.sort, d = T.dir;
-    v = v.map(f => [sortKey(rowVal(f, c)), f]).sort((a, b) => a[0] == null ? 1 : b[0] == null ? -1 : (a[0] < b[0] ? -d : a[0] > b[0] ? d : 0)).map(x => x[1]);
+    const key = f => { const x = rowVal(f, c), k = T.opts.sortKey ? T.opts.sortKey(c, x) : undefined; return k !== undefined ? k : sortKey(x); };
+    v = v.map(f => [key(f), f]).sort((a, b) => a[0] == null ? 1 : b[0] == null ? -1 : (a[0] < b[0] ? -d : a[0] > b[0] ? d : 0)).map(x => x[1]);
   }
   T.view = v;
   $("tbl-count").textContent = `${v.length.toLocaleString("nl-NL")} van ${T.rows.length.toLocaleString("nl-NL")} regels` +
@@ -1387,7 +1458,7 @@ function renderRows() {
   for (let i = first; i < last; i++) {
     const f = T.view[i];
     html += `<tr data-i="${i}"${T.sel === f ? ' class="sel"' : ""}><td class="zoomcol"><button class="zbtn" data-zoom="${i}" title="Zoom naar dit feature">${ZOOM_ICON}</button></td>` +
-      T.cols.map(c => { const v = rowVal(f, c); return `<td${typeof v === "number" ? ' class="num"' : ""} data-c="${esc(c)}">${c === "geometry" ? (v ? objChip(v) : '<span class="nil">—</span>') : c === "id" ? `<span class="mono">${esc(v)}</span>` : cellHtml(v)}</td>`; }).join("") + "</tr>";
+      T.cols.map(c => { const v = rowVal(f, c), cu = T.opts.cell?.(c, v); return `<td${typeof v === "number" ? ' class="num"' : ""} data-c="${esc(c)}"${c === "melding" || c === "definitie" || c === "toelichting" ? ` title="${esc(v ?? "")}"` : ""}>${cu != null ? cu : c === "geometry" ? (v ? objChip(v) : '<span class="nil">—</span>') : c === "id" ? `<span class="mono">${esc(v)}</span>` : cellHtml(v)}</td>`; }).join("") + "</tr>";
   }
   if (last < n) html += `<tr style="height:${(n - last) * RH}px"><td colspan="${colspan}" style="padding:0;border:0"></td></tr>`;
   if (!n) html = `<tr><td colspan="${colspan}" class="nil" style="text-align:center;height:60px">Geen regels${$("tbl-q").value ? " voor deze zoekopdracht" : ""}</td></tr>`;
@@ -1404,7 +1475,7 @@ function deselect() {
   T.sel = null; setHL(null);
   if (popup) popup.remove();
   $("tbl-zoom").disabled = true; $("tbl-desel").disabled = true;
-  renderRows();
+  markSel();
 }
 $("tbl-table").addEventListener("click", e => {
   const ref = e.target.closest("[data-ref]");
@@ -1415,12 +1486,16 @@ $("tbl-table").addEventListener("click", e => {
   const z = e.target.closest("[data-zoom]");
   if (z) { const f = T.view[+z.dataset.zoom]; selectFeature(f); zoomTo(f); return; }
   const tr = e.target.closest("tr[data-i]");
-  if (tr) { const f = T.view[+tr.dataset.i]; T.sel === f ? deselect() : selectFeature(f); }   // nogmaals klikken = deselecteren
+  if (!tr) return;
+  const f = T.view[+tr.dataset.i], now = Date.now();
+  if (T.opts.onRow) { T.opts.onRow(f); return; }
+  // Dubbelklik zelf herkennen (twee klikken op dezelfde regel binnen 400 ms): selecteren en zoomen
+  if (T.lastClick && T.lastClick.f === f && now - T.lastClick.t < 400) { T.lastClick = null; selectFeature(f); zoomTo(f); return; }
+  T.lastClick = { f, t: now };
+  T.sel === f ? deselect() : selectFeature(f);   // nogmaals klikken = deselecteren
 });
-$("tbl-table").addEventListener("dblclick", e => {
-  const tr = e.target.closest("tr[data-i]"); if (!tr) return;
-  const f = T.view[+tr.dataset.i]; selectFeature(f); zoomTo(f);   // dubbelklik selecteert altijd (ook na de deselect van de 2e klik)
-});
+// Alleen de selectiemarkering bijwerken (geen rijen herbouwen, zodat een dubbelklik op dezelfde regel blijft landen)
+function markSel() { document.querySelectorAll("#tbl-table tbody tr[data-i]").forEach(tr => tr.classList.toggle("sel", T.view[+tr.dataset.i] === T.sel)); }
 // Hoogte aanpassen door te slepen
 (() => {
   try { const h = localStorage.getItem("imdf-tbl-h"); if (h) $("tbl").style.setProperty("--tbl-h", h + "px"); } catch {}
@@ -1433,7 +1508,10 @@ $("tbl-table").addEventListener("dblclick", e => {
 })();
 
 // --- Oplichten en zoomen op de kaart ---
+// Een validatiebevinding staat voor het feature waar ze over gaat
+const target = f => f?.feature_type === "_issue" ? S.featById[f.properties.feature] || null : f;
 function geomOf(f) {
+  f = target(f); if (!f || f.feature_type?.startsWith("_")) return null;
   if (f.feature_type === "occupant") return S.anchorById[f.properties.anchor_id]?.geometry || null;
   if (f.feature_type === "amenity") return f.geometry || S.unitById[(f.properties.unit_ids || [])[0]]?.properties.display_point || null;
   if (f.feature_type === "anchor") return f.geometry;
@@ -1448,7 +1526,7 @@ function selectFeature(f) {
   T.sel = f; $("tbl-zoom").disabled = !geomOf(f); $("tbl-desel").disabled = false;
   const o = ordsOf(f);
   if (o && o.length && !o.includes(S.ord) && S.ordinals.includes(o[0])) setLevel(o[0]);
-  setHL(f); renderRows();
+  setHL(f); markSel();
 }
 function zoomTo(f) {
   const g = geomOf(f); if (!g) return;
@@ -1458,7 +1536,7 @@ function zoomTo(f) {
   const center = b.getCenter();
   if (g.type === "Point") map.flyTo({ center, zoom: Math.max(map.getZoom(), 19) });
   else map.fitBounds(b, { padding: 60, maxZoom: 20.5 });
-  map.once("moveend", () => { if (T.sel === f) showPopup(f, g.type === "Point" ? g.coordinates : center); });
+  map.once("moveend", () => { if (T.sel === f && target(f)) showPopup(target(f), g.type === "Point" ? g.coordinates : center); });
 }
 
 // ---------- Search ----------
